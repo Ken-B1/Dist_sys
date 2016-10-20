@@ -1,0 +1,9 @@
+{"namespace":  "avro.hello.proto",
+ "protocol": "Hello",
+ "messages": {
+   "sayHello": {
+     "request": [{"name": "username", "type": "string" }],
+     "response": "string"
+    }
+  }
+}
