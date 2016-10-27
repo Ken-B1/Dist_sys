@@ -11,8 +11,6 @@ import avro.hello.proto.Hello;
 public class HelloClient {
 	public static void main(String[] args){
 		try {
-			//InetAddress moet worde aangepast naar de naam van wa ge wilt naar connecte
-			//Mss later aanpasse zoda ge via een broadcast ofzo het ip van de server kunt krijge
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName("kenpc"),6789));
 			Hello proxy = (Hello) SpecificRequestor.getClient(Hello.class, client);
 			CharSequence response = proxy.sayHello("Jordan");
