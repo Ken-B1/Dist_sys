@@ -1,6 +1,7 @@
 package classes;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketServer;
@@ -21,7 +22,7 @@ public class HelloServer implements Hello{
 	public static void main(String[] args){
 		Server server = null;
 		try {
-			server = new SaslSocketServer(new SpecificResponder(Hello.class,new HelloServer()),new InetSocketAddress(6789));
+			server = new SaslSocketServer(new SpecificResponder(Hello.class,new HelloServer()),new InetSocketAddress(InetAddress.getLocalHost(),6789));
 		} catch (IOException e){
 			System.err.println("[error]: Failed to start server");
 			e.printStackTrace(System.err);
