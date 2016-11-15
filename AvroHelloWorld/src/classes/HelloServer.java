@@ -1,5 +1,6 @@
 package classes;
 
+import java.awt.List;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -8,6 +9,8 @@ import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.specific.SpecificResponder;
 import avro.hello.proto.Hello;
+import sourcefiles.Fridge;
+import sourcefiles.Light;
 
 public class HelloServer implements Hello{
 	private int id=0;
@@ -20,19 +23,13 @@ public class HelloServer implements Hello{
 	}
 	
 	public static void main(String[] args){
-		Server server = null;
-		try {
-			server = new SaslSocketServer(new SpecificResponder(Hello.class,new HelloServer()),new InetSocketAddress(InetAddress.getLocalHost(),6789));
-		} catch (IOException e){
-			System.err.println("[error]: Failed to start server");
-			e.printStackTrace(System.err);
-			System.exit(1);
-		}
-		server.start();
-		try {
-			server.join();
-		} catch (InterruptedException e){
-			
-		}
+		Fridge user1 = new Fridge();
+		user1.setName("fridge1");
+		List<CharSequence> elements;
+		elements.add("test1");
+		elements.add("test2");
+		
+		user1.setContent(elements);
+		System.out.println(user1);
 	}
 }

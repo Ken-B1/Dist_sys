@@ -1,0 +1,35 @@
+package classes;
+
+import java.awt.List;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import org.apache.avro.AvroRemoteException;
+import org.apache.avro.ipc.SaslSocketServer;
+import org.apache.avro.ipc.Server;
+import org.apache.avro.ipc.specific.SpecificResponder;
+import avro.hello.proto.Hello;
+import sourcefiles.Fridge;
+import sourcefiles.Light;
+
+public class HelloServer implements Hello{
+	private int id=0;
+	
+	@Override
+	public CharSequence sayHello(CharSequence username) throws AvroRemoteException
+	{
+		System.out.println("Client-connected: " + username + " (number " + id + ")");
+		return "Hello " + username + " you are user number " + id++;
+	}
+	
+	public static void main(String[] args){
+		Fridge user1 = new Fridge();
+		user1.setName("fridge1");
+		List elements;
+		elements.add("test1");
+		elements.add("test2");
+		
+		user1.setContent(elements);
+		System.out.println(user1);
+	}
+}
