@@ -8,12 +8,14 @@ package avro.hello.proto;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface Hello {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"Hello\",\"namespace\":\"avro.hello.proto\",\"types\":[],\"messages\":{\"sayHello\":{\"request\":[{\"name\":\"username\",\"type\":\"string\"}],\"response\":\"string\"}}}");
-  java.lang.CharSequence sayHello(java.lang.CharSequence username) throws org.apache.avro.AvroRemoteException;
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"Hello\",\"namespace\":\"avro.hello.proto\",\"types\":[],\"messages\":{\"enter\":{\"request\":[{\"name\":\"username\",\"type\":\"string\"},{\"name\":\"ip\",\"type\":\"string\"}],\"response\":\"string\"},\"leave\":{\"request\":[{\"name\":\"username\",\"type\":\"string\"}],\"response\":\"string\"}}}");
+  java.lang.CharSequence enter(java.lang.CharSequence username, java.lang.CharSequence ip) throws org.apache.avro.AvroRemoteException;
+  java.lang.CharSequence leave(java.lang.CharSequence username) throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
   public interface Callback extends Hello {
     public static final org.apache.avro.Protocol PROTOCOL = avro.hello.proto.Hello.PROTOCOL;
-    void sayHello(java.lang.CharSequence username, org.apache.avro.ipc.Callback<java.lang.CharSequence> callback) throws java.io.IOException;
+    void enter(java.lang.CharSequence username, java.lang.CharSequence ip, org.apache.avro.ipc.Callback<java.lang.CharSequence> callback) throws java.io.IOException;
+    void leave(java.lang.CharSequence username, org.apache.avro.ipc.Callback<java.lang.CharSequence> callback) throws java.io.IOException;
   }
 }
