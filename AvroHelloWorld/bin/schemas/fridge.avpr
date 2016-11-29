@@ -1,0 +1,11 @@
+{"namespace": "sourcefiles",
+ "type": "record",
+ "name": "Fridge",
+ "fields": [
+     {"name": "name", "type": "string"},
+	 {"name": "content", "type": 
+	   {"type": "array", "items": "string"}
+	 }
+ ]
+}
+  

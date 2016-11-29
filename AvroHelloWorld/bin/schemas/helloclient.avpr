@@ -1,0 +1,13 @@
+{"namespace":  "avro.hello.proto",
+ "protocol": "ClientHello",
+ "messages": {
+   "state": {
+     "request": [{"name": "username", "type": "string" }],
+     "response": "string"
+    },
+     "change": {
+     "request": [{"name": "username", "type": "string" }],
+     "response": "string"
+    }
+  }
+}

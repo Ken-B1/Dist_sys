@@ -1,0 +1,13 @@
+{"namespace":  "avro.hello.proto",
+ "protocol": "Hello",
+ "messages": {
+   "enter": {
+     "request": [{"name": "username", "type": "string" },{"name": "ip", "type":"string"}],
+     "response": "string"
+    },
+     "leave": {
+     "request": [{"name": "username", "type": "string" }],
+     "response": "string"
+    }
+  }
+}

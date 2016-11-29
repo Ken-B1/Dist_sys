@@ -14,7 +14,6 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
-import avro.hello.proto.ClientAvro;
 import avro.hello.proto.ClientHello;
 import avro.hello.proto.Hello;
 
