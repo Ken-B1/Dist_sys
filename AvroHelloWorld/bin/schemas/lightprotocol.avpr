@@ -1,0 +1,10 @@
+{"namespace": "sourcefiles",
+ "protocol": "lightprotocol",
+ "messages": {
+    "changestate": {
+      "request": [],
+      "response": "boolean"
+    }
+  }
+}
+  

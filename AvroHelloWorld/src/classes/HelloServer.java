@@ -14,6 +14,7 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
+import sourcefiles.lightprotocol;
 import avro.hello.proto.ClientHello;
 import avro.hello.proto.Hello;
 
@@ -115,6 +116,13 @@ public class HelloServer implements Hello{
 			e.printStackTrace(System.err);
 			System.exit(1);
 		}*/
+	    try {	
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(6798));
+			lightprotocol proxy = (lightprotocol) SpecificRequestor.getClient(lightprotocol.class, client);
+			proxy.changestate();
+	    } catch(Exception e){
+	    	
+	    }
 		return "Welcome " + username;
 	}
 	
