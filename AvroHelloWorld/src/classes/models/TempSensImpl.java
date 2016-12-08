@@ -19,24 +19,18 @@ import sourcefiles.TSProtocol;
 
 public class TempSensImpl implements TSProtocol {
 	Random random = new Random();
-	Transceiver client;
-	int currentTemp;
+	double currentTemp;
 	String userName;
 	
-	
-	public static void main(String[] args){
-		TempSensImpl temperatuursensor = new TempSensImpl();
-	}
-	
-	public TempSensImpl(){
+	public TempSensImpl(double temperature){
 		//Try to connect to server 
 		try {	
-			client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),1234));
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			userName = proxy.enter("light",InetAddress.getLocalHost().getHostAddress()).toString();
+			userName = proxy.enter("temperature sensor",InetAddress.getLocalHost().getHostAddress()).toString();
 			System.out.println(userName);
-			//proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			//System.out.println(proxy.leave(userName).toString());
+			client.close();
+			//Start the procedure of updating temperature and sending it to the server
 		} catch(AvroRemoteException e){
 			System.err.println("Error joining");
 			e.printStackTrace(System.err);
@@ -46,7 +40,33 @@ public class TempSensImpl implements TSProtocol {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		currentTemp=20;
+		currentTemp=temperature;
+		updateTemperature();
 		System.out.println("TempSens created!");
+	}
+	
+	private void updateTemperature(){
+		//X = time between updates
+		long x = 30000;
+		while(true){
+			//Update temperature with random value between -1 and 1
+			currentTemp += Math.random() * 2 -1;
+			System.out.println("Current temperature of sensor:" + currentTemp);
+			try {
+				//Connect to server to send status update
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
+				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+				proxy.updateTemperature(userName, (int)currentTemp);
+				client.close();
+				
+				Thread.sleep(x);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (Exception e){
+				e.printStackTrace();				
+			}
+		}
+		
 	}
 }

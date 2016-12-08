@@ -36,6 +36,11 @@
     "showConnectedFridges": {
      "request": [],
      "response": {"type": "array", "items": "string"}
+    },    
+    "updateTemperature": {
+     "request": [{"name": "sensorName", "type": "string"},
+     			 {"name": "sensorValue", "type": "int"}],
+     "response": "null"
     }
   }
 }

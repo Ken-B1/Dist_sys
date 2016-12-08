@@ -30,6 +30,8 @@ public class ServerExe implements ServerProtocol{
 		private static Map<String,CharSequence> connectedFridges = new HashMap<String,CharSequence>();
 		private static Map<String,CharSequence> connectedTS = new HashMap<String,CharSequence>();
 		
+		private Map<String, Integer> temperatures = new HashMap<String, Integer>();
+		
 		private static Scanner keyboard = new Scanner(System.in);
 		public static void main(String[] args){
 		
@@ -267,5 +269,14 @@ public class ServerExe implements ServerProtocol{
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	@Override
+	public Void updateTemperature(CharSequence sensorName, int sensorValue) throws AvroRemoteException {
+		if(temperatures.containsKey(sensorName)){
+			temperatures.put((String) sensorName, sensorValue);
+		}
+		return null;
+	}
+	
 }
 
