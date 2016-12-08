@@ -21,19 +21,22 @@ public class TempSensImpl implements TSProtocol {
 	Random random = new Random();
 	Transceiver client;
 	int currentTemp;
+	String userName;
 	
 	
 	public static void main(String[] args){
-		new TempSensImpl();
+		TempSensImpl temperatuursensor = new TempSensImpl();
 	}
 	
 	public TempSensImpl(){
 		//Try to connect to server 
 		try {	
-			client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
+			client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),1234));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			String userName = proxy.enter("light",InetAddress.getLocalHost().getHostAddress()).toString();
+			userName = proxy.enter("light",InetAddress.getLocalHost().getHostAddress()).toString();
 			System.out.println(userName);
+			//proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+			//System.out.println(proxy.leave(userName).toString());
 		} catch(AvroRemoteException e){
 			System.err.println("Error joining");
 			e.printStackTrace(System.err);
