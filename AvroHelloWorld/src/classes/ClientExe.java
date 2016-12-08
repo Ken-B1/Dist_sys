@@ -65,21 +65,8 @@ public class ClientExe {
 				break;
 			case "temperature sensor":
 				System.out.println("Selected the Temperature Sensor");
-				int startTemp = 0;
-				do{
-					System.out.print("Please give a starting temperature for the sensor between 15 and 25 degrees: ");
-					if(keyboard.hasNextInt()){
-						startTemp=keyboard.nextInt();
-					} else {
-						System.out.println("Please give a number");
-					}
-					System.out.println(startTemp > 25 && startTemp < 15);
-					System.out.println(startTemp > 25);
-					System.out.println(startTemp < 15);
-				} while (startTemp > 25 && startTemp < 15);
-				
 				try {
-					server = new SaslSocketServer(new SpecificResponder(TSProtocol.class,new TempSensImpl(startTemp)),new InetSocketAddress(InetAddress.getLocalHost(),port));
+					server = new SaslSocketServer(new SpecificResponder(TSProtocol.class,new TempSensImpl()),new InetSocketAddress(InetAddress.getLocalHost(),port));
 				} catch (UnknownHostException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
