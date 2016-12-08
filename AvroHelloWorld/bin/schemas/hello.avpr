@@ -2,7 +2,7 @@
  "protocol": "Hello",
  "messages": {
    "enter": {
-     "request": [{"name": "username", "type": "string" },{"name": "ip", "type":"string"}],
+     "request": [{"name": "ip", "type":"string"}],
      "response": "string"
     },
      "leave": {

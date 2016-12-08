@@ -1,0 +1,18 @@
+{"namespace": "sourcefiles",
+ "protocol": "FridgeProtocol",
+ "messages": {
+    "getInventory": {
+      "request": [],
+      "response": {"type":"array","items":"string"}
+    },
+    "addItem": {
+      "request": [{"name":"item","type":"string"}],
+      "response": "string"
+    },
+    "removeItem": {
+      "request": [{"name":"item","type":"string"}],
+      "response": "string"
+    }
+  }
+}
+  

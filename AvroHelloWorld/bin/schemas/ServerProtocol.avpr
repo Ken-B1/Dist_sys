@@ -1,0 +1,41 @@
+{"namespace":  "sourcefiles",
+ "protocol": "ServerProtocol",
+ "messages": {
+   "enter": {
+     "request": [{"name": "type", "type": "string" },{"name": "ip", "type":"string"}],
+     "response": "string"
+    },
+    "leave": {
+     "request": [{"name": "userName", "type": "string" }],
+     "response": "string"
+    },
+    "getLightStatuses": {
+     "request": [],
+     "response": {"type": "array", "items": "string"}
+    },
+    "changeLightState": {
+     "request": [{"name": "lightName", "type": "string" }],
+     "response": "string"
+    },
+    "showFridgeInventory": {
+     "request": [{"name": "fridgeName", "type": "string" }],
+     "response": "string"
+    },
+    "showCurrentHouseTemp": {
+     "request": [],
+     "response": "string"
+    },
+    "showTempHistory": {
+     "request": [],
+     "response": {"type": "map", "values": "int"}
+    },
+    "connectUserToFridge": {
+     "request": [{"name": "fridgeName", "type": "string" }],
+     "response": "string"
+    },
+    "showConnectedFridges": {
+     "request": [],
+     "response": {"type": "array", "items": "string"}
+    }
+  }
+}
