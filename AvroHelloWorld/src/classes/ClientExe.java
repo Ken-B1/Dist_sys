@@ -50,6 +50,8 @@ public class ClientExe {
 			selectedType = keyboard.nextLine();
 		} while(!selectedType.equalsIgnoreCase("light") && !selectedType.equalsIgnoreCase("temperature sensor") && !selectedType.equalsIgnoreCase("fridge") && !selectedType.equalsIgnoreCase("user"));
 		
+		selectedType = selectedType.toLowerCase();
+		
 		switch(selectedType){
 			case "light":
 				System.out.println("Selected the Light");
