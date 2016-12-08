@@ -1,7 +1,11 @@
 {"namespace": "sourcefiles",
- "protocol": "lightprotocol",
+ "protocol": "LightProtocol",
  "messages": {
-    "changestate": {
+    "changeState": {
+      "request": [],
+      "response": "boolean"
+    },
+    "getState": {
       "request": [],
       "response": "boolean"
     }

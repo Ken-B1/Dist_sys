@@ -7,13 +7,15 @@ package sourcefiles;
 
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
-public interface lightprotocol {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"lightprotocol\",\"namespace\":\"sourcefiles\",\"types\":[],\"messages\":{\"changestate\":{\"request\":[],\"response\":\"boolean\"}}}");
-  boolean changestate() throws org.apache.avro.AvroRemoteException;
+public interface LightProtocol {
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"LightProtocol\",\"namespace\":\"sourcefiles\",\"types\":[],\"messages\":{\"changeState\":{\"request\":[],\"response\":\"boolean\"},\"getState\":{\"request\":[],\"response\":\"boolean\"}}}");
+  boolean changeState() throws org.apache.avro.AvroRemoteException;
+  boolean getState() throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
-  public interface Callback extends lightprotocol {
-    public static final org.apache.avro.Protocol PROTOCOL = sourcefiles.lightprotocol.PROTOCOL;
-    void changestate(org.apache.avro.ipc.Callback<java.lang.Boolean> callback) throws java.io.IOException;
+  public interface Callback extends LightProtocol {
+    public static final org.apache.avro.Protocol PROTOCOL = sourcefiles.LightProtocol.PROTOCOL;
+    void changeState(org.apache.avro.ipc.Callback<java.lang.Boolean> callback) throws java.io.IOException;
+    void getState(org.apache.avro.ipc.Callback<java.lang.Boolean> callback) throws java.io.IOException;
   }
 }
