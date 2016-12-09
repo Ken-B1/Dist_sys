@@ -1,11 +1,11 @@
-package classes.Startup;
+package classes;
 
 import java.util.Scanner;
 
 import classes.models.UserImpl;
 
 
-public class Userstartup {
+public class UserExe {
 
 	public static void main(String[] args) {
 		//Create an object of the userimpl class

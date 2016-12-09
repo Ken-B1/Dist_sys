@@ -1,10 +1,10 @@
-package classes.Startup;
+package classes;
 
 import java.util.Scanner;
 
 import classes.models.TempSensImpl;
 
-public class Tsstartup {
+public class TsExe {
 	public static void main(String[] args) {
 		Scanner reader = new Scanner(System.in);  // Reading from System.in
 		System.out.println("Enter a number: ");
