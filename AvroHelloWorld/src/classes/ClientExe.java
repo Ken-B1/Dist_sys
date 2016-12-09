@@ -34,8 +34,7 @@ public class ClientExe {
 		System.out.println("Welcome!");
 		
 		System.out.print("portnumber:");
-		port = keyboard.nextInt();
-		System.out.println(keyboard.nextLine());
+		port = Integer.parseInt(keyboard.nextLine());
 		do {
 			System.out.println("===============================================");
 			System.out.println("Please select one of the following types:");
@@ -56,7 +55,7 @@ public class ClientExe {
 			case "light":
 				System.out.println("Selected the Light");
 			try {
-				server = new SaslSocketServer(new SpecificResponder(LightProtocol.class,new LightImpl()),new InetSocketAddress(InetAddress.getLocalHost(),port));
+				server = new SaslSocketServer(new SpecificResponder(LightProtocol.class,new LightImpl(6790)),new InetSocketAddress(InetAddress.getLocalHost(),port));
 			} catch (UnknownHostException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
@@ -66,7 +65,7 @@ public class ClientExe {
 			case "temperature sensor":
 				System.out.println("Selected the Temperature Sensor");
 				try {
-					server = new SaslSocketServer(new SpecificResponder(TSProtocol.class,new TempSensImpl(2)),new InetSocketAddress(InetAddress.getLocalHost(),port));
+					server = new SaslSocketServer(new SpecificResponder(TSProtocol.class,new TempSensImpl(1)),new InetSocketAddress(InetAddress.getLocalHost(),port));
 				} catch (UnknownHostException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
@@ -100,7 +99,7 @@ public class ClientExe {
 			switch (keyboard.nextLine()){
 				case "join":
 					try {	
-						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName("143.169.195.85"),6789));
+						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName("192.168.0.107"),6789));
 						ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 						System.out.println("Server made");
 						userName = proxy.enter(selectedType,InetAddress.getLocalHost().getHostAddress()).toString();
@@ -121,7 +120,7 @@ public class ClientExe {
 					
 				case "leave":
 					try {
-						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName("143.169.195.85"),6789));
+						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName("192.168.0.107"),6789));
 						ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 						CharSequence leaveResponse = proxy.leave(userName);
 						System.out.println(leaveResponse);
@@ -145,7 +144,7 @@ public class ClientExe {
 					
 				case "lightStates":
 					try {
-						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName("143.169.195.85"),6789));
+						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName("192.168.0.107"),6789));
 						ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 						List<CharSequence> lightStatuses = proxy.getLightStatuses();
 						client.close();
