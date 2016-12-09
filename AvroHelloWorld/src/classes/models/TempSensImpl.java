@@ -36,7 +36,7 @@ public class TempSensImpl implements TSProtocol {
 			s.close();
 			InetSocketAddress socketaddress = new InetSocketAddress(InetAddress.getLocalHost(), portnumber);
 			
-			userName = proxy.enter("temperature sensor",InetAddress.getLocalHost().getHostAddress()).toString();
+			userName = proxy.enter("temperature sensor",InetAddress.getLocalHost().getHostAddress()+ "," + portnumber).toString();
 			System.out.println(userName);
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server

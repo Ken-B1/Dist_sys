@@ -7,10 +7,8 @@ import classes.models.LightImpl;
 public class LightExe {
 	public static void main(String[] args){
 		Scanner keyboard = new Scanner(System.in);
-		int choice;
-		System.out.println("Welcome!");
-		System.out.print("Give the portnumber:");
-		LightImpl light = new LightImpl(Integer.parseInt(keyboard.nextLine()));
+		int choice = 4;
+		LightImpl light = new LightImpl();
 		
 		do {
 			System.out.println("================================================================================");
@@ -29,7 +27,7 @@ public class LightExe {
 				light.join();
 				break;
 			case 2: 
-				System.out.println("You chose: join");
+				System.out.println("You chose: leave");
 				light.leave();
 				break;
 			case 3: 

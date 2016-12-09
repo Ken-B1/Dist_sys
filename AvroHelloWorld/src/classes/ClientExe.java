@@ -55,7 +55,7 @@ public class ClientExe {
 			case "light":
 				System.out.println("Selected the Light");
 			try {
-				server = new SaslSocketServer(new SpecificResponder(LightProtocol.class,new LightImpl(6790)),new InetSocketAddress(InetAddress.getLocalHost(),port));
+				server = new SaslSocketServer(new SpecificResponder(LightProtocol.class,new LightImpl()),new InetSocketAddress(InetAddress.getLocalHost(),port));
 			} catch (UnknownHostException e) {
 				e.printStackTrace();
 			} catch (IOException e) {

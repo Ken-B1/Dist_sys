@@ -29,7 +29,7 @@ public class UserExe {
 				ts.requestLights();
 				break;
 			case "b":
-				ts.switchLight("xx");
+				ts.switchLight();
 				break;
 			case "c":
 				ts.getFridgeContent("xx");

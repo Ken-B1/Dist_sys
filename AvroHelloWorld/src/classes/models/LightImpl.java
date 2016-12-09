@@ -3,6 +3,7 @@ package classes.models;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.UnknownHostException;
 
 import org.apache.avro.AvroRemoteException;
@@ -26,14 +27,16 @@ public class LightImpl implements LightProtocol{
     Server server = null;
     int port;
     
-    public LightImpl(int port){
+    public LightImpl(){
     	try {
-    	ip = InetAddress.getLocalHost().getHostAddress();
-    	client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName("192.168.0.107"),6789));
-    	this.port=port;
-		proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-		server = new SaslSocketServer(new SpecificResponder(LightProtocol.class,this),new InetSocketAddress(InetAddress.getLocalHost(),port));
-		server.start();
+			ServerSocket s = new ServerSocket(0);
+			port = s.getLocalPort();
+			s.close();
+    	    ip = InetAddress.getLocalHost().getHostAddress();
+    	    client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(), 6789));
+		    proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+		    server = new SaslSocketServer(new SpecificResponder(LightProtocol.class,this),new InetSocketAddress(InetAddress.getLocalHost(),port));
+		    server.start();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

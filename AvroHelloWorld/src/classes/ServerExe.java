@@ -200,6 +200,10 @@ public class ServerExe implements ServerProtocol {
 	public CharSequence changeLightState(CharSequence lightName)throws AvroRemoteException {
 		boolean status = false;
 		try {
+			//Check if existing light is requested
+			if(!connectedLights.containsKey(lightName.toString())){
+				throw new IOException("Nonexistent lightname has been provided.");
+			}
 			String[] lightValue =connectedLights.get(lightName.toString()).toString().split(",");
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
 			LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
@@ -234,13 +238,16 @@ public class ServerExe implements ServerProtocol {
 	@Override
 	public int showCurrentHouseTemp() throws AvroRemoteException {
 		int currenttemperature = 0;
-		 int counter = 0;
-		 for (Entry<String, Integer> entry : temperatures.entrySet())
-		 {
-		 	counter += 1;
-		 	currenttemperature += entry.getValue();
-		 }
-		 return currenttemperature/counter;
+		int counter = 0;
+		for (Entry<String, Integer> entry : temperatures.entrySet())
+		{
+			counter += 1;
+			currenttemperature += entry.getValue();
+		}
+		if(counter == 0){
+			return 0;
+		}
+		return currenttemperature/counter;
 	}
 
 	@Override
@@ -271,8 +278,8 @@ public class ServerExe implements ServerProtocol {
 	
 	@Override
 	public Void updateTemperature(CharSequence sensorName, int sensorValue) throws AvroRemoteException {
-		if (temperatures.containsKey(sensorName)) {
-			temperatures.put((String) sensorName, sensorValue);
+		if (connectedTS.containsKey(sensorName.toString())) {
+			temperatures.put(sensorName.toString(), sensorValue);
 		}
 		return null;
 	}

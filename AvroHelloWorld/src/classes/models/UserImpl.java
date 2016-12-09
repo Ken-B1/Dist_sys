@@ -3,8 +3,10 @@ package classes.models;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Scanner;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketTransceiver;
@@ -20,10 +22,12 @@ public class UserImpl implements UserProtocol {
 	
 	public UserImpl(){
 		try {	
-			portnumber = 1234;
+			ServerSocket s = new ServerSocket(0);
+			portnumber = s.getLocalPort();
+			s.close();
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress()).toString();
+			userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress() + "," + portnumber).toString();
 			System.out.println(userName);
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server
@@ -80,12 +84,16 @@ public class UserImpl implements UserProtocol {
 	}
 	
 	
-	public void switchLight(String lightname){
+	public void switchLight(){
 		//Method that will request to switch the status of a light
 		try {	
+			Scanner keyboard = new Scanner(System.in);
+			System.out.println("Give light name");		
+			String selectedType = keyboard.nextLine();
+			
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			proxy.changeLightState("lichtnaam").toString();
+			proxy.changeLightState(selectedType).toString();
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server
 		} catch(AvroRemoteException e){
@@ -95,7 +103,7 @@ public class UserImpl implements UserProtocol {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println(e.getMessage());
 		}
 	}
 	
