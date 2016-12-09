@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.Map.Entry;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketServer;
@@ -247,9 +248,16 @@ public class ServerExe implements ServerProtocol{
 	}
 
 	@Override
-	public CharSequence showCurrentHouseTemp() throws AvroRemoteException {
+	public int showCurrentHouseTemp() throws AvroRemoteException {
 		// TODO Auto-generated method stub
-		return null;
+		int currenttemperature = 0;
+		int counter = 0;
+		for (Entry<String, Integer> entry : temperatures.entrySet())
+		{
+			counter += 1;
+			currenttemperature += entry.getValue();
+		}
+		return currenttemperature/counter;
 	}
 
 	@Override
@@ -271,9 +279,9 @@ public class ServerExe implements ServerProtocol{
 	}
 	
 	@Override
-	public Void updateTemperature(CharSequence sensorName, int sensorValue) throws AvroRemoteException {
-		if(temperatures.containsKey(sensorName)){
-			temperatures.put((String) sensorName, sensorValue);
+	public Void updateTemperature(CharSequence sensorName, int sensorValue) throws AvroRemoteException {	
+		if(connectedTS.containsKey(sensorName.toString())){
+			temperatures.put(sensorName.toString(), sensorValue);
 		}
 		return null;
 	}

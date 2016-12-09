@@ -13,10 +13,37 @@ public class Userstartup {
 		Scanner keyboard = new Scanner(System.in);
 		String selectedType;
 		do {
-			System.out.println("Enter Exit to end");
+			System.out.println("Usage:");
+			System.out.println("a: requestlights");
+			System.out.println("b: switchlight");
+			System.out.println("c: getfridgecontent");
+			System.out.println("d: openfridge");
+			System.out.println("e: gettemperature");
+			System.out.println("f: gettemperaturehistory");
+			System.out.println("g: exit");
 			selectedType = keyboard.nextLine();
-		} while(!selectedType.equalsIgnoreCase("exit"));
+			
+			switch(selectedType){
+			case "a":
+				ts.requestLights();
+				break;
+			case "b":
+				ts.switchLight("xx");
+				break;
+			case "c":
+				ts.getFridgeContent("xx");
+				break;
+			case "d":
+				ts.openFridge("x");
+				break;
+			case "e":
+				ts.getTemperature();
+				break;
+			case "f":
+				ts.getTemperatureHistory();
+				break;
+			}
+		} while(!selectedType.equalsIgnoreCase("g") && !selectedType.equalsIgnoreCase("exit"));
 		keyboard.close();
 	}
-
 }

@@ -18,7 +18,6 @@ import sourcefiles.ServerProtocol;
 import sourcefiles.TSProtocol;
 
 public class TempSensImpl implements TSProtocol {
-	Random random = new Random();
 	double currentTemp;
 	String userName;
 	

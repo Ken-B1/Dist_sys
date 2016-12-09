@@ -27,7 +27,7 @@
     },
     "showCurrentHouseTemp": {
      "request": [],
-     "response": "string"
+     "response": "int"
     },
     "showTempHistory": {
      "request": [],
