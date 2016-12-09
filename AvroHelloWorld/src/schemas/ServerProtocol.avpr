@@ -2,7 +2,7 @@
  "protocol": "ServerProtocol",
  "messages": {
    "enter": {
-     "request": [{"name": "type", "type": "string" },{"name": "ip", "type":"string"}, {"name": "port", "type":"int"}],
+     "request": [{"name": "type", "type": "string" },{"name": "ip", "type":"string"}],
      "response": "string"
     },
     "leave": {

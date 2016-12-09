@@ -23,7 +23,7 @@ public class UserImpl implements UserProtocol {
 			portnumber = 1234;
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress(), portnumber).toString();
+			userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress()).toString();
 			System.out.println(userName);
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server

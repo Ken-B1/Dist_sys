@@ -25,126 +25,84 @@ import sourcefiles.ServerProtocol;
 import sourcefiles.TSProtocol;
 import sourcefiles.UserProtocol;
 
-public class ServerExe implements ServerProtocol{
-		private static Map<String,CharSequence> connectedUsers = new HashMap<String,CharSequence>();
-		private static Map<String,CharSequence> connectedLights = new HashMap<String,CharSequence>();
-		private static Map<String,CharSequence> connectedFridges = new HashMap<String,CharSequence>();
-		private static Map<String,InetSocketAddress> connectedTS = new HashMap<String,InetSocketAddress>();
-		
-		private Map<String, Integer> temperatures = new HashMap<String, Integer>();
-		
-		private static Scanner keyboard = new Scanner(System.in);
-		public static void main(String[] args){
-		
-			Server server = null;
-			try {
-				System.out.println(InetAddress.getLocalHost());
-				server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class,new ServerExe()),new InetSocketAddress(InetAddress.getLocalHost(),6789));
-			} catch (IOException e){
-				System.err.println("[error]: Failed to start server");
-				e.printStackTrace(System.err);
-				System.exit(1);
-			}
-			
-			server.start();
-			
-			do {
-				System.out.println("'exit' to quit");
-			} while (keyboard.nextLine().equals("exit"));
-			
-			server.close();
-		/*boolean getList = true;
+
+public class ServerExe implements ServerProtocol {
+	private static Map<String, CharSequence> connectedUsers = new HashMap<String, CharSequence>();
+	private static Map<String, CharSequence> connectedLights = new HashMap<String, CharSequence>();
+	private static Map<String, CharSequence> connectedFridges = new HashMap<String, CharSequence>();
+	private static Map<String, CharSequence> connectedTS = new HashMap<String, CharSequence>();
+	private Map<String, Integer> temperatures = new HashMap<String, Integer>();
+	private static Scanner keyboard = new Scanner(System.in);
+	private static boolean stayOpen=true;
+	
+	public static void main(String[] args) {
 		Server server = null;
 		try {
 			System.out.println(InetAddress.getLocalHost());
-			server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class,new ServerExe()),new InetSocketAddress(InetAddress.getLocalHost(),6789));
-		} catch (IOException e){
+			server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, new ServerExe()),new InetSocketAddress(InetAddress.getLocalHost(), 6789));
+		} catch (IOException e) {
 			System.err.println("[error]: Failed to start server");
 			e.printStackTrace(System.err);
 			System.exit(1);
 		}
 		server.start();
-		
-		System.out.println("If you want to get a list of all the connected devices, type: 'list'");
-		do{
-			switch (keyboard.nextLine()){
-			case "list":
-				System.out.println("List incoming:");
-				System.out.println(connectedClients.values().size());
-				break;
-			case "getstate":
+		int choice = 0;
+		/*do {
+			System.out.println("1) get light states");
+			System.out.println("0) quit");
+			choice = Integer.parseInt(keyboard.nextLine());
+			switch (choice) {
+			case 1:
+				Set<Map.Entry<String, CharSequence>> set = connectedLights.entrySet();
+				String lightChoice;
+				do {
+					for (Map.Entry<String, CharSequence> light : set) {
+						System.out.println(light.getKey());
+					}
+					System.out.print("type the name of a light you want to connect to:");
+					lightChoice = keyboard.nextLine();
+				} while (!connectedLights.containsKey(lightChoice));
+				Transceiver client;
 				try {
-					if(connectedClients.size()>0){
-						String selectedClient = selectConnectedClient();
-						if(!selectedClient.equals("")){
-						System.out.println("Getting the state for: " + selectedClient);
-						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(connectedClients.get(selectedClient)),6798));
-						ClientHello proxy = (ClientHello) SpecificRequestor.getClient(ClientHello.class, client);
-						CharSequence response = proxy.state("Hello there");
-						System.out.println("Response:");
-						System.out.println(response);
-						client.close();
-					}else {
-						System.out.println("There are no connected clients! Try again later");
-					}
+					System.out.println(connectedLights.get(lightChoice).toString());
+					client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(connectedLights.get(lightChoice).toString()), 6798));
+					LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
+					System.out.println(proxy.getState());
+					client.close();
 					break;
-					}
-				}catch (UnknownHostException e) {
+				} catch (UnknownHostException e) {
 					e.printStackTrace();
-				}catch (IOException e) {
+				} catch (IOException e) {
 					e.printStackTrace();
 				}
-			case "state":
-				try {
-					if(connectedClients.size()>0){
-						String selectedClient = selectConnectedClient();
-						System.out.println("Changing the state for: " + selectedClient);
-						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(connectedClients.get(selectedClient)),6798));
-						ClientHello proxy = (ClientHello) SpecificRequestor.getClient(ClientHello.class, client);
-						CharSequence response = proxy.change("Hello there");
-						System.out.println("Response:");
-						System.out.println(response);
-						client.close();
-					}else {
-						System.out.println("There are no connected clients! Try again later");
-					}
-					break;
-				}catch (UnknownHostException e) {
-					e.printStackTrace();
-				}catch (IOException e) {
-					e.printStackTrace();
-				}
-			default: 
-				getList=false;
-				break;
 			}
-		} while (getList);
-			try {
-				server.join();
-			} catch (InterruptedException e){
-			}*/
+		} while (choice != 0);*/
+		
+		while(stayOpen){
+			
+		}
+		server.close();
 	}
 
 	@Override
-	public CharSequence enter(CharSequence type, CharSequence ip, int portnumber) throws AvroRemoteException {
-		InetSocketAddress socketaddress = new InetSocketAddress(ip.toString(), portnumber);
-		System.out.println("Client coming in");
-		String name="";
-		switch(type.toString()){
-		case "light":
-			name = "Light"+connectedLights.size();
-			connectedLights.put(name, ip);
+	public CharSequence enter(CharSequence type, CharSequence ip) throws AvroRemoteException {
+			System.out.println("Client coming in");
+			String name = "";
+			switch (type.toString()) {
+			case "light":
+				name = "Light" + connectedLights.size();
+				connectedLights.put(name, ip);
+				break;
+			case "temperature sensor":
+			name = "TS" + connectedTS.size();
+			connectedTS.put(name, ip);
 			break;
-		case "temperature sensor":
-			name = "TS"+connectedTS.size();
-			connectedTS.put(name, socketaddress);
-			break;
-		case "fridge": 
-			name = "Fridge"+connectedFridges.size();
+		case "fridge":
+			name = "Fridge" + connectedFridges.size();
 			connectedFridges.put(name, ip);
 			break;
-		case "user": 
-			name = "User"+connectedUsers.size();
+		case "user":
+			name = "User" + connectedUsers.size();
 			connectedUsers.put(name, ip);
 			break;
 		}
@@ -154,21 +112,21 @@ public class ServerExe implements ServerProtocol{
 	@Override
 	public CharSequence leave(CharSequence userName) throws AvroRemoteException {
 		System.out.println(userName.toString().split("[0-9]")[0]);
-		switch(userName.toString().split("[0-9]")[0]){
+		switch (userName.toString().split("[0-9]")[0]) {
 		case "Light":
 			connectedLights.remove(userName.toString());
 			break;
 		case "TS":
 			connectedTS.remove(userName.toString());
 			break;
-		case "Fridge": 
+		case "Fridge":
 			connectedFridges.remove(userName.toString());
 			break;
-		case "User": 
+		case "User":
 			connectedUsers.remove(userName.toString());
 			break;
 		}
-		
+
 		return userName + " has left";
 	}
 
@@ -196,7 +154,7 @@ public class ServerExe implements ServerProtocol{
 			clients.add(name);
 		}
 		
-		for (Entry<String, InetSocketAddress> entry : connectedTS.entrySet())
+		for (Entry<String, CharSequence> entry : connectedTS.entrySet())
 		{
 			String name = entry.getKey();
 			clients.add(name);
@@ -207,26 +165,24 @@ public class ServerExe implements ServerProtocol{
 
 	@Override
 	public List<CharSequence> getLightStatuses() throws AvroRemoteException {	
-		
 		List<CharSequence> lightStatuses = new ArrayList<CharSequence>();
-		
+
 		Set<Map.Entry<String, CharSequence>> set = connectedLights.entrySet();
 
 		for (Map.Entry<String, CharSequence> light : set) {
-			try {	
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(light.getValue().toString()),0));
+			try {
+				String[] lightValue =light.getValue().toString().split(",");
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
 				LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
 				boolean status = proxy.getState();
-				if(status){
+				if (status) {
 					lightStatuses.add(light.getKey() + " is on");
 				} else {
 					lightStatuses.add(light.getKey() + " is off");
 				}
-				System.out.println("Received status: " + status + ", from light: " + light.getKey());
-				
 				client.close();
-				
-			} catch(AvroRemoteException e){
+
+			} catch (AvroRemoteException e) {
 				System.err.println("Error joining");
 				e.printStackTrace(System.err);
 				System.exit(1);
@@ -235,28 +191,24 @@ public class ServerExe implements ServerProtocol{
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
+
 		}
 		return lightStatuses;
 	}
 
 	@Override
-	public CharSequence changeLightState(CharSequence lightName) throws AvroRemoteException {
-		boolean status=false;
-		System.out.print("portnumber:");
-		int port = keyboard.nextInt();
-		System.out.println(keyboard.nextLine());
-		
-		
-		try {	
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(connectedLights.get(lightName.toString()).toString()),port));
+	public CharSequence changeLightState(CharSequence lightName)throws AvroRemoteException {
+		boolean status = false;
+		try {
+			String[] lightValue =connectedLights.get(lightName.toString()).toString().split(",");
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
 			LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
-			
+
 			status = proxy.changeState();
-			
+
 			client.close();
-			
-		} catch(AvroRemoteException e){
+
+		} catch (AvroRemoteException e) {
 			System.err.println("Error joining");
 			e.printStackTrace(System.err);
 			System.exit(1);
@@ -265,7 +217,7 @@ public class ServerExe implements ServerProtocol{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		if(status){
+		if (status) {
 			return lightName + " is now on";
 		} else {
 			return lightName + " is now ";
@@ -273,32 +225,34 @@ public class ServerExe implements ServerProtocol{
 	}
 
 	@Override
-	public CharSequence showFridgeInventory(CharSequence fridgeName) throws AvroRemoteException {
+	public CharSequence showFridgeInventory(CharSequence fridgeName)
+			throws AvroRemoteException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public int showCurrentHouseTemp() throws AvroRemoteException {
-		// TODO Auto-generated method stub
 		int currenttemperature = 0;
-		int counter = 0;
-		for (Entry<String, Integer> entry : temperatures.entrySet())
-		{
-			counter += 1;
-			currenttemperature += entry.getValue();
-		}
-		return currenttemperature/counter;
+		 int counter = 0;
+		 for (Entry<String, Integer> entry : temperatures.entrySet())
+		 {
+		 	counter += 1;
+		 	currenttemperature += entry.getValue();
+		 }
+		 return currenttemperature/counter;
 	}
 
 	@Override
-	public Map<CharSequence, Integer> showTempHistory() throws AvroRemoteException {
+	public Map<CharSequence, Integer> showTempHistory()
+			throws AvroRemoteException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public CharSequence connectUserToFridge(CharSequence fridgeName) throws AvroRemoteException {
+	public CharSequence connectUserToFridge(CharSequence fridgeName)
+			throws AvroRemoteException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -308,20 +262,19 @@ public class ServerExe implements ServerProtocol{
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	public CharSequence requestShowEmptyFridge(CharSequence fridgeName) throws AvroRemoteException {
+	 // TODO Auto-generated method stub
+	 return null;
+	}
 	
 	@Override
-	public Void updateTemperature(CharSequence sensorName, int sensorValue) throws AvroRemoteException {	
-		if(connectedTS.containsKey(sensorName.toString())){
-			temperatures.put(sensorName.toString(), sensorValue);
+	public Void updateTemperature(CharSequence sensorName, int sensorValue) throws AvroRemoteException {
+		if (temperatures.containsKey(sensorName)) {
+			temperatures.put((String) sensorName, sensorValue);
 		}
 		return null;
 	}
 
-	@Override
-	public CharSequence requestShowEmptyFridge(CharSequence fridgeName) throws AvroRemoteException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 }
-
