@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.List;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketTransceiver;
@@ -15,12 +16,14 @@ import sourcefiles.UserProtocol;
 
 public class UserImpl implements UserProtocol {
 	private String userName;
+	private int portnumber; 
 	
 	public UserImpl(){
 		try {	
+			portnumber = 1234;
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress()).toString();
+			userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress(), portnumber).toString();
 			System.out.println(userName);
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server
@@ -41,8 +44,11 @@ public class UserImpl implements UserProtocol {
 		try {	
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress()).toString();
-			System.out.println(userName);
+			List<CharSequence> clients = proxy.getClients();
+			for(CharSequence x : clients){
+				String type = x.toString().split("[0-9]")[0];
+				System.out.println(type + ": " + x.toString());
+			}
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server
 		} catch(AvroRemoteException e){

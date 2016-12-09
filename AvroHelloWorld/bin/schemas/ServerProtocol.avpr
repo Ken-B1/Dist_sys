@@ -2,13 +2,17 @@
  "protocol": "ServerProtocol",
  "messages": {
    "enter": {
-     "request": [{"name": "type", "type": "string" },{"name": "ip", "type":"string"}],
+     "request": [{"name": "type", "type": "string" },{"name": "ip", "type":"string"}, {"name": "port", "type":"int"}],
      "response": "string"
     },
     "leave": {
      "request": [{"name": "userName", "type": "string" }],
      "response": "string"
     },
+    "getClients": {
+     "request": [],
+     "response": {"type": "array", "items": "string"}
+    }, 
     "getLightStatuses": {
      "request": [],
      "response": {"type": "array", "items": "string"}

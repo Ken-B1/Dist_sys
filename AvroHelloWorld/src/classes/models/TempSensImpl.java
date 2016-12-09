@@ -3,6 +3,7 @@ package classes.models;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Random;
 
@@ -18,15 +19,24 @@ import sourcefiles.ServerProtocol;
 import sourcefiles.TSProtocol;
 
 public class TempSensImpl implements TSProtocol {
-	double currentTemp;
-	String userName;
+	private double currentTemp;
+	private String userName;
+	private int portnumber;
 	
 	public TempSensImpl(double temperature){
 		//Try to connect to server 
+		
 		try {	
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			userName = proxy.enter("temperature sensor",InetAddress.getLocalHost().getHostAddress()).toString();
+			
+			//Use serversocket to find open socket
+			ServerSocket s = new ServerSocket(0);
+			portnumber = s.getLocalPort();
+			s.close();
+			InetSocketAddress socketaddress = new InetSocketAddress(InetAddress.getLocalHost(), portnumber);
+			
+			userName = proxy.enter("temperature sensor",InetAddress.getLocalHost().getHostAddress(), portnumber).toString();
 			System.out.println(userName);
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server
@@ -62,8 +72,20 @@ public class TempSensImpl implements TSProtocol {
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				try {
+					Thread.sleep(x);
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			} catch (Exception e){
-				e.printStackTrace();				
+				e.printStackTrace();	
+				try {
+					Thread.sleep(x);
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 		}
 		

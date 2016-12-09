@@ -103,7 +103,7 @@ public class ClientExe {
 						Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName("143.169.195.85"),6789));
 						ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 						System.out.println("Server made");
-						userName = proxy.enter(selectedType,InetAddress.getLocalHost().getHostAddress()).toString();
+						userName = proxy.enter(selectedType,InetAddress.getLocalHost().getHostAddress(), 0).toString();
 						System.out.println("Your userName is: " + userName);
 						System.out.println("If you want to leave, type: 'leave'");
 						client.close();

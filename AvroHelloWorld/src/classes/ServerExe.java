@@ -29,7 +29,7 @@ public class ServerExe implements ServerProtocol{
 		private static Map<String,CharSequence> connectedUsers = new HashMap<String,CharSequence>();
 		private static Map<String,CharSequence> connectedLights = new HashMap<String,CharSequence>();
 		private static Map<String,CharSequence> connectedFridges = new HashMap<String,CharSequence>();
-		private static Map<String,CharSequence> connectedTS = new HashMap<String,CharSequence>();
+		private static Map<String,InetSocketAddress> connectedTS = new HashMap<String,InetSocketAddress>();
 		
 		private Map<String, Integer> temperatures = new HashMap<String, Integer>();
 		
@@ -126,7 +126,8 @@ public class ServerExe implements ServerProtocol{
 	}
 
 	@Override
-	public CharSequence enter(CharSequence type, CharSequence ip) throws AvroRemoteException {
+	public CharSequence enter(CharSequence type, CharSequence ip, int portnumber) throws AvroRemoteException {
+		InetSocketAddress socketaddress = new InetSocketAddress(ip.toString(), portnumber);
 		System.out.println("Client coming in");
 		String name="";
 		switch(type.toString()){
@@ -136,7 +137,7 @@ public class ServerExe implements ServerProtocol{
 			break;
 		case "temperature sensor":
 			name = "TS"+connectedTS.size();
-			connectedTS.put(name, ip);
+			connectedTS.put(name, socketaddress);
 			break;
 		case "fridge": 
 			name = "Fridge"+connectedFridges.size();
@@ -172,10 +173,40 @@ public class ServerExe implements ServerProtocol{
 	}
 
 	@Override
+	public List<CharSequence> getClients() throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		
+		List<CharSequence> clients = new ArrayList<CharSequence>();
+		
+		for (Entry<String, CharSequence> entry : connectedUsers.entrySet())
+		{
+			String name = entry.getKey();
+			clients.add(name);
+		}
+		
+		for (Entry<String, CharSequence> entry : connectedLights.entrySet())
+		{
+			String name = entry.getKey();
+			clients.add(name);
+		}
+		
+		for (Entry<String, CharSequence> entry : connectedFridges.entrySet())
+		{
+			String name = entry.getKey();
+			clients.add(name);
+		}
+		
+		for (Entry<String, InetSocketAddress> entry : connectedTS.entrySet())
+		{
+			String name = entry.getKey();
+			clients.add(name);
+		}
+		
+		return clients;
+	}
+
+	@Override
 	public List<CharSequence> getLightStatuses() throws AvroRemoteException {	
-		System.out.print("portnumber:");
-		int port = keyboard.nextInt();
-		System.out.println(keyboard.nextLine());
 		
 		List<CharSequence> lightStatuses = new ArrayList<CharSequence>();
 		
@@ -183,7 +214,7 @@ public class ServerExe implements ServerProtocol{
 
 		for (Map.Entry<String, CharSequence> light : set) {
 			try {	
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(light.getValue().toString()),port));
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(light.getValue().toString()),0));
 				LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
 				boolean status = proxy.getState();
 				if(status){

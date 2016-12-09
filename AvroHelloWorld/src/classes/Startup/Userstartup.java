@@ -20,7 +20,8 @@ public class Userstartup {
 			System.out.println("d: openfridge");
 			System.out.println("e: gettemperature");
 			System.out.println("f: gettemperaturehistory");
-			System.out.println("g: exit");
+			System.out.println("g: requestClients");
+			System.out.println("h: exit");
 			selectedType = keyboard.nextLine();
 			
 			switch(selectedType){
@@ -42,8 +43,11 @@ public class Userstartup {
 			case "f":
 				ts.getTemperatureHistory();
 				break;
+			case "g":
+				ts.requestClients();
+				break;
 			}
-		} while(!selectedType.equalsIgnoreCase("g") && !selectedType.equalsIgnoreCase("exit"));
+		} while(!selectedType.equalsIgnoreCase("h") && !selectedType.equalsIgnoreCase("exit"));
 		keyboard.close();
 	}
 }
