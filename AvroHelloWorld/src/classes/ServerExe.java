@@ -277,6 +277,12 @@ public class ServerExe implements ServerProtocol{
 		}
 		return null;
 	}
+
+	@Override
+	public CharSequence requestShowEmptyFridge(CharSequence fridgeName) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
 }
 

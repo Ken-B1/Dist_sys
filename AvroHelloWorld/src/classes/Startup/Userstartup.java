@@ -1,20 +1,22 @@
-package classes.Ts;
+package classes.Startup;
 
 import java.util.Scanner;
 
-import classes.models.TempSensImpl;
+import classes.models.UserImpl;
 
-public class Startup {
+
+public class Userstartup {
+
 	public static void main(String[] args) {
-		Scanner reader = new Scanner(System.in);  // Reading from System.in
-		System.out.println("Enter a number: ");
-		int n = reader.nextInt();
-		TempSensImpl ts = new TempSensImpl(n);
+		//Create an object of the userimpl class
+		UserImpl ts = new UserImpl();
 		Scanner keyboard = new Scanner(System.in);
 		String selectedType;
 		do {
 			System.out.println("Enter Exit to end");
 			selectedType = keyboard.nextLine();
 		} while(!selectedType.equalsIgnoreCase("exit"));
+		keyboard.close();
 	}
+
 }

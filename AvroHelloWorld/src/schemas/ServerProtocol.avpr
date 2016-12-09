@@ -21,6 +21,10 @@
      "request": [{"name": "fridgeName", "type": "string" }],
      "response": "string"
     },
+    "requestShowEmptyFridge": {
+     "request": [{"name": "fridgeName", "type": "string"}],
+     "response": "string"
+    },
     "showCurrentHouseTemp": {
      "request": [],
      "response": "string"

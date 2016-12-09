@@ -66,7 +66,7 @@ public class ClientExe {
 			case "temperature sensor":
 				System.out.println("Selected the Temperature Sensor");
 				try {
-					server = new SaslSocketServer(new SpecificResponder(TSProtocol.class,new TempSensImpl()),new InetSocketAddress(InetAddress.getLocalHost(),port));
+					server = new SaslSocketServer(new SpecificResponder(TSProtocol.class,new TempSensImpl(2)),new InetSocketAddress(InetAddress.getLocalHost(),port));
 				} catch (UnknownHostException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
