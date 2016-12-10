@@ -229,13 +229,6 @@ public class ServerExe implements ServerProtocol {
 	}
 
 	@Override
-	public CharSequence showFridgeInventory(CharSequence fridgeName)
-			throws AvroRemoteException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public int showCurrentHouseTemp() throws AvroRemoteException {
 		int currenttemperature = 0;
 		int counter = 0;
@@ -258,16 +251,21 @@ public class ServerExe implements ServerProtocol {
 	}
 
 	@Override
-	public CharSequence connectUserToFridge(CharSequence fridgeName)
-			throws AvroRemoteException {
-		// TODO Auto-generated method stub
-		return null;
+	public CharSequence connectUserToFridge(CharSequence fridgeName)throws AvroRemoteException {
+		return connectedFridges.get(fridgeName.toString());
 	}
 
 	@Override
 	public List<CharSequence> showConnectedFridges() throws AvroRemoteException {
-		// TODO Auto-generated method stub
-		return null;
+		List<CharSequence> fridges = new ArrayList<CharSequence>();
+		
+		for (Entry<String, CharSequence> entry : connectedFridges.entrySet())
+		{
+			CharSequence name = entry.getKey();
+			fridges.add(name);
+		}
+		
+		return fridges;
 	}
 
 	@Override
@@ -284,4 +282,46 @@ public class ServerExe implements ServerProtocol {
 		return null;
 	}
 
+	@Override
+	public List<CharSequence> getFridgeInventory(CharSequence fridgeName)throws AvroRemoteException {
+		String[] fridgeValue = connectedFridges.get(fridgeName.toString()).toString().split(",");
+		
+		List<CharSequence> inventory=new ArrayList<CharSequence>();
+		try {
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(fridgeValue[0]), Integer.parseInt(fridgeValue[1])));
+			FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+			inventory=proxy.getInventory();
+		} catch (NumberFormatException e) {
+			e.printStackTrace();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return inventory;
+	}
+
+	@Override
+	public CharSequence notifyUsersOfEmptyFridge(CharSequence fridgeName)throws AvroRemoteException {
+		for (Entry<String, CharSequence> entry : connectedUsers.entrySet())
+		{
+			try {
+				String[] userValue = entry.getValue().toString().split(",");
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+				UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+				System.out.println(proxy.notifyOfEmptyFridge(fridgeName));
+				client.close();
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		
+		return "All users have been notified";
+	}
 }

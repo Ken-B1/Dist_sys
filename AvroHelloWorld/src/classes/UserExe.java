@@ -9,7 +9,7 @@ public class UserExe {
 
 	public static void main(String[] args) {
 		//Create an object of the userimpl class
-		UserImpl ts = new UserImpl();
+		UserImpl user = new UserImpl();
 		Scanner keyboard = new Scanner(System.in);
 		String selectedType;
 		do {
@@ -26,25 +26,25 @@ public class UserExe {
 			
 			switch(selectedType){
 			case "a":
-				ts.requestLights();
+				user.requestLights();
 				break;
 			case "b":
-				ts.switchLight();
+				user.switchLight();
 				break;
 			case "c":
-				ts.getFridgeContent("xx");
+				user.getFridgeContent();
 				break;
 			case "d":
-				ts.openFridge("x");
+				user.openFridge();
 				break;
 			case "e":
-				ts.getTemperature();
+				user.getTemperature();
 				break;
 			case "f":
-				ts.getTemperatureHistory();
+				user.getTemperatureHistory();
 				break;
 			case "g":
-				ts.requestClients();
+				user.requestClients();
 				break;
 			}
 		} while(!selectedType.equalsIgnoreCase("h") && !selectedType.equalsIgnoreCase("exit"));

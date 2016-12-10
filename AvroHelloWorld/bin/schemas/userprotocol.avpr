@@ -1,6 +1,10 @@
 {"namespace": "sourcefiles",
  "protocol": "UserProtocol",
  "messages": {
+ 	"notifyOfEmptyFridge": {
+    	"request": [{"name": "fridgeName", "type": "string"}],
+    	"response": "string"
+    }
   }
 }
   

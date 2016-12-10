@@ -21,9 +21,9 @@
      "request": [{"name": "lightName", "type": "string" }],
      "response": "string"
     },
-    "showFridgeInventory": {
+    "getFridgeInventory": {
      "request": [{"name": "fridgeName", "type": "string" }],
-     "response": "string"
+     "response": {"type": "array", "items": "string"}
     },
     "requestShowEmptyFridge": {
      "request": [{"name": "fridgeName", "type": "string"}],
@@ -49,6 +49,10 @@
      "request": [{"name": "sensorName", "type": "string"},
      			 {"name": "sensorValue", "type": "int"}],
      "response": "null"
+    },
+    "notifyUsersOfEmptyFridge": {
+     "request": [{"name": "fridgeName", "type": "string"}],
+     "response": "string"
     }
   }
 }
