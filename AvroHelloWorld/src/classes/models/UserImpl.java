@@ -107,9 +107,14 @@ public class UserImpl implements UserProtocol {
 		}
 	}
 	
-	public void getFridgeContent(String fridgename){
+	public void getFridgeContent(){
 		//Method that will request the content of a certain fridge
 		try {	
+			Scanner keyboard = new Scanner(System.in);
+			System.out.println("Give fridge name");		
+			String selectedType = keyboard.nextLine();
+			
+			
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 			proxy.showFridgeInventory("xx").toString();
@@ -126,9 +131,13 @@ public class UserImpl implements UserProtocol {
 		}
 	}
 	
-	public void openFridge(String fridgename){
+	public void openFridge(){
 		//Method that will open a fridge and connect to the fridge directly for a private connection
 		try {	
+			Scanner keyboard = new Scanner(System.in);
+			System.out.println("Give fridge name");		
+			String selectedType = keyboard.nextLine();
+			
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 			userName = proxy.connectUserToFridge(userName).toString();

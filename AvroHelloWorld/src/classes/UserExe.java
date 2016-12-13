@@ -32,10 +32,10 @@ public class UserExe {
 				ts.switchLight();
 				break;
 			case "c":
-				ts.getFridgeContent("xx");
+				ts.getFridgeContent();
 				break;
 			case "d":
-				ts.openFridge("x");
+				ts.openFridge();
 				break;
 			case "e":
 				ts.getTemperature();

@@ -200,10 +200,6 @@ public class ServerExe implements ServerProtocol {
 	public CharSequence changeLightState(CharSequence lightName)throws AvroRemoteException {
 		boolean status = false;
 		try {
-			//Check if existing light is requested
-			if(!connectedLights.containsKey(lightName.toString())){
-				throw new IOException("Nonexistent lightname has been provided.");
-			}
 			String[] lightValue =connectedLights.get(lightName.toString()).toString().split(",");
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
 			LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
@@ -229,8 +225,7 @@ public class ServerExe implements ServerProtocol {
 	}
 
 	@Override
-	public CharSequence showFridgeInventory(CharSequence fridgeName)
-			throws AvroRemoteException {
+	public CharSequence showFridgeInventory(CharSequence fridgeName) throws AvroRemoteException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -251,8 +246,7 @@ public class ServerExe implements ServerProtocol {
 	}
 
 	@Override
-	public Map<CharSequence, Integer> showTempHistory()
-			throws AvroRemoteException {
+	public Map<CharSequence, Integer> showTempHistory() throws AvroRemoteException {
 		// TODO Auto-generated method stub
 		return null;
 	}
