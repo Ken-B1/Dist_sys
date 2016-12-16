@@ -1,6 +1,8 @@
 package classes;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -24,6 +26,7 @@ import sourcefiles.LightProtocol;
 import sourcefiles.ServerProtocol;
 import sourcefiles.TSProtocol;
 import sourcefiles.UserProtocol;
+import utility.NetworkDiscoveryServer;
 
 
 public class ServerExe implements ServerProtocol {
@@ -36,9 +39,10 @@ public class ServerExe implements ServerProtocol {
 	private static boolean stayOpen=true;
 	
 	public static void main(String[] args) {
-		Server server = null;
+		Server server = null;		
 		try {
-			System.out.println(InetAddress.getLocalHost());
+			Thread server1 = new Thread(new NetworkDiscoveryServer());
+			server1.start();
 			server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, new ServerExe()),new InetSocketAddress(InetAddress.getLocalHost(), 6789));
 		} catch (IOException e) {
 			System.err.println("[error]: Failed to start server");

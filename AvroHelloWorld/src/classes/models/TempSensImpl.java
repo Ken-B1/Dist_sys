@@ -1,6 +1,8 @@
 package classes.models;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -17,16 +19,19 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 
 import sourcefiles.ServerProtocol;
 import sourcefiles.TSProtocol;
+import utility.NetworkDiscoveryClient;
 
 public class TempSensImpl implements TSProtocol {
 	private double currentTemp;
 	private String userName;
 	private int portnumber;
+	private InetSocketAddress server;
 	
 	public TempSensImpl(double temperature){
 		//Try to connect to server 
-		
-		try {	
+		try {
+			NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient(this, "Ts");
+			server = FindServer.findServer();
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 			
@@ -36,7 +41,7 @@ public class TempSensImpl implements TSProtocol {
 			s.close();
 			InetSocketAddress socketaddress = new InetSocketAddress(InetAddress.getLocalHost(), portnumber);
 			
-			userName = proxy.enter("temperature sensor",InetAddress.getLocalHost().getHostAddress()+ "," + portnumber).toString();
+			userName = proxy.enter("temperature sensor", server.toString().replace(":", ",")).toString();
 			System.out.println(userName);
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server
@@ -52,6 +57,10 @@ public class TempSensImpl implements TSProtocol {
 		currentTemp=temperature;
 		updateTemperature();
 		System.out.println("TempSens created!");
+	}
+	
+	public void setServer(InetSocketAddress address){
+		server = address;
 	}
 	
 	private void updateTemperature(){
