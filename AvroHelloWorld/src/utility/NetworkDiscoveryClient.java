@@ -22,6 +22,7 @@ public class NetworkDiscoveryClient{
 	public InetSocketAddress findServer() throws UnknownHostException {
 		try{
 		  DatagramSocket c = new DatagramSocket();
+		  c.setSoTimeout(1000);
 	      c.setBroadcast(true);
 
 	      byte[] sendData = "DISCOVER_SERVER_REQUEST".getBytes();
@@ -52,7 +53,6 @@ public class NetworkDiscoveryClient{
           //Close the port!
           c.close();
 		}catch(Exception e){
-			
 		}
         return new InetSocketAddress(InetAddress.getByName("0.0.0.0"), 0);
 	}

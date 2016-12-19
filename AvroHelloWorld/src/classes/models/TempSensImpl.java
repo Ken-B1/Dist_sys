@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Random;
 
@@ -26,12 +27,15 @@ public class TempSensImpl implements TSProtocol {
 	private String userName;
 	private int portnumber;
 	private InetSocketAddress server;
+	private boolean serverFound;
 	
 	public TempSensImpl(double temperature){
+		serverFound = false;
 		//Try to connect to server 
 		try {
 			NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient(this, "Ts");
 			server = FindServer.findServer();
+			serverFound = true;
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 			
@@ -51,9 +55,13 @@ public class TempSensImpl implements TSProtocol {
 			System.exit(1);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
+		} catch (SocketException e){
+			System.out.println("Server isnt found");
+			serverFound = false;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println(serverFound);
 		currentTemp=temperature;
 		updateTemperature();
 		System.out.println("TempSens created!");
@@ -64,8 +72,8 @@ public class TempSensImpl implements TSProtocol {
 	}
 	
 	private void updateTemperature(){
-		//X = time between updates
-		long x = 30000;
+		//X = time between updates = 1 min
+		long x = 60000;
 		while(true){
 			//Update temperature with random value between -1 and 1
 			currentTemp += Math.random() * 2 -1;

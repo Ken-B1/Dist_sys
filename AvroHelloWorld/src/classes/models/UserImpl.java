@@ -161,7 +161,7 @@ public class UserImpl implements UserProtocol {
 	public void openFridge(){
 		Scanner keyboard = new Scanner(System.in);
 		String[] fridgeValue= {};
-		//Method that will request the content of a certain fridge
+		//Method that will try to connect to a fridge
 		try {	
 			String fridgeName="";
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
