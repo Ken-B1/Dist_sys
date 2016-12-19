@@ -1,9 +1,9 @@
 {"namespace": "sourcefiles",
  "type": "record",
- "name": "TemperatureSensor",
+ "name": "TemperatureRecord",
  "fields": [
-     {"name": "name", "type": "string"},
-	 {"name": "temperature", "type": "int"}
+     {"name": "time", "type": "string"},
+	 {"name": "temperature", "type": "double"}
  ]
 }
   

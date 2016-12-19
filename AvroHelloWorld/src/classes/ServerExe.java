@@ -26,6 +26,7 @@ import sourcefiles.LightProtocol;
 import sourcefiles.ServerProtocol;
 import sourcefiles.TSProtocol;
 import sourcefiles.UserProtocol;
+import sourcefiles.TemperatureRecord;
 import utility.NetworkDiscoveryServer;
 
 
@@ -34,7 +35,7 @@ public class ServerExe implements ServerProtocol {
 	private static Map<String, CharSequence> connectedLights = new HashMap<String, CharSequence>();
 	private static Map<String, CharSequence> connectedFridges = new HashMap<String, CharSequence>();
 	private static Map<String, CharSequence> connectedTS = new HashMap<String, CharSequence>();
-	private Map<String, Integer> temperatures = new HashMap<String, Integer>();
+	private Map<String, Vector<TemperatureRecord>> temperatures = new HashMap<String, Vector<TemperatureRecord>>();
 	private static Scanner keyboard = new Scanner(System.in);
 	private static boolean stayOpen=true;
 	
@@ -232,10 +233,10 @@ public class ServerExe implements ServerProtocol {
 	public int showCurrentHouseTemp() throws AvroRemoteException {
 		int currenttemperature = 0;
 		int counter = 0;
-		for (Entry<String, Integer> entry : temperatures.entrySet())
+		for (Entry<String, Vector<TemperatureRecord>> entry : temperatures.entrySet())
 		{
 			counter += 1;
-			currenttemperature += entry.getValue();
+			currenttemperature += entry.getValue().lastElement().temperature;
 		}
 		if(counter == 0){
 			return 0;
@@ -274,9 +275,18 @@ public class ServerExe implements ServerProtocol {
 	}
 	
 	@Override
-	public Void updateTemperature(CharSequence sensorName, int sensorValue) throws AvroRemoteException {
+	public Void updateTemperature(CharSequence sensorName, TemperatureRecord sensorValue) throws AvroRemoteException {
 		if (connectedTS.containsKey(sensorName.toString())) {
-			temperatures.put(sensorName.toString(), sensorValue);
+			Vector<TemperatureRecord> records = temperatures.get(sensorName.toString());
+			if(records == null){
+				//No entries for this sensor have been made yet, so add a vector with the entries
+				Vector<TemperatureRecord> newrecords = new Vector<TemperatureRecord>();
+				newrecords.add(sensorValue);
+				temperatures.put(sensorName.toString(), newrecords);
+			}else{
+				records.add(sensorValue);
+				temperatures.put(sensorName.toString(), records);
+			}
 		}
 		return null;
 	}

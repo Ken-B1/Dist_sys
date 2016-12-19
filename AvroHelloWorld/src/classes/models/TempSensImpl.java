@@ -7,8 +7,12 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Random;
+import java.util.Vector;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketServer;
@@ -18,19 +22,21 @@ import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
 
+import sourcefiles.TemperatureRecord;
 import sourcefiles.ServerProtocol;
 import sourcefiles.TSProtocol;
 import utility.NetworkDiscoveryClient;
 
 public class TempSensImpl implements TSProtocol {
-	private double currentTemp;
 	private String userName;
 	private int portnumber;
 	private InetSocketAddress server;
 	private boolean serverFound;
+	private Vector<TemperatureRecord> temperatures;
 	
 	public TempSensImpl(double temperature){
 		serverFound = false;
+		temperatures = new Vector<TemperatureRecord>();
 		//Try to connect to server 
 		try {
 			NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient(this, "Ts");
@@ -43,9 +49,8 @@ public class TempSensImpl implements TSProtocol {
 			ServerSocket s = new ServerSocket(0);
 			portnumber = s.getLocalPort();
 			s.close();
-			InetSocketAddress socketaddress = new InetSocketAddress(InetAddress.getLocalHost(), portnumber);
 			
-			userName = proxy.enter("temperature sensor", server.toString().replace(":", ",")).toString();
+			userName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
 			System.out.println(userName);
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server
@@ -55,14 +60,16 @@ public class TempSensImpl implements TSProtocol {
 			System.exit(1);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
-		} catch (SocketException e){
+		} catch (SocketTimeoutException e){
 			System.out.println("Server isnt found");
 			serverFound = false;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println(serverFound);
-		currentTemp=temperature;
+		LocalTime currenttime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+		TemperatureRecord newtemp = new TemperatureRecord(currenttime.toString(), temperature);
+		temperatures.addElement(newtemp);
+		sendToServer(newtemp);
 		updateTemperature();
 		System.out.println("TempSens created!");
 	}
@@ -73,38 +80,53 @@ public class TempSensImpl implements TSProtocol {
 	
 	private void updateTemperature(){
 		//X = time between updates = 1 min
-		long x = 60000;
-		while(true){
+		long x = 5000;
+		while(true){	
 			//Update temperature with random value between -1 and 1
-			currentTemp += Math.random() * 2 -1;
-			System.out.println("Current temperature of sensor:" + currentTemp);
+			LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+			if(!currentTime.equals(LocalTime.parse(temperatures.lastElement().time) ) ){
+				//A minute has gone by so take new temperature measurement
+				double currentTemp = temperatures.lastElement().temperature + (Math.random() * 2 -1);
+				TemperatureRecord newrecord = new TemperatureRecord(currentTime.toString(),currentTemp);
+				temperatures.addElement(newrecord);
+				System.out.println("Current temperature of sensor:" + currentTemp);
+			}
+			
 			try {
-				//Connect to server to send status update
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
-				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-				proxy.updateTemperature(userName, (int)currentTemp);
-				client.close();
-				
 				Thread.sleep(x);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				try {
-					Thread.sleep(x);
-				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			} catch (Exception e){
-				e.printStackTrace();	
-				try {
-					Thread.sleep(x);
-				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+			}			
+		}
+	}
+	
+	private void sendToServer(TemperatureRecord record){
+		System.out.println("test");
+		//First check if the server has been found yet
+		if(!serverFound){
+			try{
+				NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient(this, "Ts");
+				server = FindServer.findServer();
+				serverFound = true;
+			} catch (IOException e) {
+				System.out.println("Server isnt found");
+				serverFound = false;
 			}
 		}
 		
+		//If server has been found, try to send new temperature
+		if(serverFound){
+			try {
+				//Connect to server to send status update and join
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
+				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+				userName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
+				proxy.updateTemperature(userName, record);
+				client.close();
+			} catch (Exception e){
+				e.printStackTrace();	
+			}
+		}
 	}
 }

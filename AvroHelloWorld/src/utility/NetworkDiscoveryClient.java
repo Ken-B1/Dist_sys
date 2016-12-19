@@ -1,9 +1,12 @@
 package utility;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
 import classes.models.TempSensImpl;
@@ -19,7 +22,7 @@ public class NetworkDiscoveryClient{
 		type = y;
 	}
 	
-	public InetSocketAddress findServer() throws UnknownHostException {
+	public InetSocketAddress findServer() throws SocketTimeoutException, IOException{
 		try{
 		  DatagramSocket c = new DatagramSocket();
 		  c.setSoTimeout(1000);
@@ -52,9 +55,11 @@ public class NetworkDiscoveryClient{
           }
           //Close the port!
           c.close();
-		}catch(Exception e){
+		}catch(SocketException e){
+			System.out.println();
 		}
-        return new InetSocketAddress(InetAddress.getByName("0.0.0.0"), 0);
+		
+        return null;
 	}
 
 }

@@ -1,5 +1,14 @@
 {"namespace":  "sourcefiles",
  "protocol": "ServerProtocol",
+ 
+   "types": [
+    {"name": "TemperatureRecord", "type": "record", "fields": [
+     {"name": "time", "type": "string"},
+	 {"name": "temperature", "type": "double"}]
+  }],
+ 
+ 
+ 
  "messages": {
    "enter": {
      "request": [{"name": "type", "type": "string" },{"name": "ip", "type":"string"}],
@@ -47,7 +56,7 @@
     },    
     "updateTemperature": {
      "request": [{"name": "sensorName", "type": "string"},
-     			 {"name": "sensorValue", "type": "int"}],
+				 {"name": "TemperatureRecord", "type": "TemperatureRecord"}], 			 
      "response": "null"
     },
     "notifyUsersOfEmptyFridge": {
