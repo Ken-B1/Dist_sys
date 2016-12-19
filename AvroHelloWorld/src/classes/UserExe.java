@@ -21,7 +21,9 @@ public class UserExe {
 			System.out.println("e: gettemperature");
 			System.out.println("f: gettemperaturehistory");
 			System.out.println("g: requestClients");
-			System.out.println("h: exit");
+			System.out.println("h: enterHouse");
+			System.out.println("i: leaveHouse");
+			System.out.println("j: exit");
 			selectedType = keyboard.nextLine();
 			
 			switch(selectedType){
@@ -46,8 +48,14 @@ public class UserExe {
 			case "g":
 				user.requestClients();
 				break;
+			case "h":
+				user.enterHouse();
+				break;
+			case "i":
+				user.leaveHouse();
+				break;
 			}
-		} while(!selectedType.equalsIgnoreCase("h") && !selectedType.equalsIgnoreCase("exit"));
+		} while(!selectedType.equalsIgnoreCase("j") && !selectedType.equalsIgnoreCase("exit"));
 		keyboard.close();
 	}
 }

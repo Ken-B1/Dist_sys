@@ -289,11 +289,57 @@ public class UserImpl implements UserProtocol {
 			e.printStackTrace();
 		}
 	}
+	
+	public void enterHouse(){
+		try{
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
+			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+			proxy.enterHouse(userName);
+			client.close();			
+		} catch(AvroRemoteException e){
+			//User hasnt joined the system yet
+			try{
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
+				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+				userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress() + "," + portNumber).toString();
+				System.out.println(userName);
+				client.close();
+			} catch(Exception e1){
+				System.out.println("Something went wrong while trying to join");
+			}
+		} catch(IOException e){
+			
+		}		
+	}
+	
+	public void leaveHouse(){
+		try{
+			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
+			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+			proxy.leaveHouse(userName);
+			client.close();			
+		} catch(AvroRemoteException e){
+			//User hasnt joined the system yet
+			try{
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
+				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+				userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress() + "," + portNumber).toString();
+				System.out.println(userName);
+				client.close();
+			} catch(Exception e1){
+				System.out.println("Something went wrong while trying to join");
+			}
+		} catch(IOException e){
+			
+		}
+	}
 
 	@Override
 	public CharSequence notifyOfEmptyFridge(CharSequence fridgeName)throws AvroRemoteException {
 		System.out.println(fridgeName +" is empty!!");
 		return userName + " received empty fridge";
 	}
+	
+	
 	
 }

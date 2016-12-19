@@ -18,6 +18,14 @@
      "request": [{"name": "userName", "type": "string" }],
      "response": "string"
     },
+    "enterHouse": {
+     "request": [{"name": "userName", "type": "string" }],
+     "response": "boolean"
+    },
+    "leaveHouse": {
+     "request": [{"name": "userName", "type": "string" }],
+     "response": "boolean"
+    },
     "getClients": {
      "request": [],
      "response": {"type": "array", "items": "string"}

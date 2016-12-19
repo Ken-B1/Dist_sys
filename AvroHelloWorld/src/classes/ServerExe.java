@@ -38,6 +38,7 @@ public class ServerExe implements ServerProtocol {
 	private static Map<String, CharSequence> connectedFridges = new HashMap<String, CharSequence>();
 	private static Map<String, CharSequence> connectedTS = new HashMap<String, CharSequence>();
 	private Vector<TemperatureMeasurementRecord> temperatures = new Vector<TemperatureMeasurementRecord>();
+	private Map<String, Boolean> userlocation = new HashMap<String, Boolean>();	//Maps a user to a location (1 = outside, 0 = inside)
 	private static Scanner keyboard = new Scanner(System.in);
 	private static boolean stayOpen=true;
 	
@@ -123,6 +124,7 @@ public class ServerExe implements ServerProtocol {
 			}
 			name = "User" + connectedUsers.size();
 			connectedUsers.put(name, ip);
+			userlocation.put(name,  false);
 			break;
 		}
 		return name;
@@ -157,7 +159,7 @@ public class ServerExe implements ServerProtocol {
 		
 		for (Entry<String, CharSequence> entry : connectedUsers.entrySet())
 		{
-			String name = entry.getKey();
+			String name = entry.getKey() + ", Location: " + (userlocation.get(entry.getKey()) ? "Outside" : "Inside");
 			clients.add(name);
 		}
 		
@@ -352,5 +354,23 @@ public class ServerExe implements ServerProtocol {
 		}
 		
 		return "All users have been notified";
+	}
+
+	@Override
+	public boolean enterHouse(CharSequence userName) throws AvroRemoteException {
+		if(!connectedUsers.containsKey(userName.toString())){
+			throw new AvroRuntimeException("User hasnt joined the system yet");
+		}
+		userlocation.put(userName.toString(), false);	
+		return true;
+	}
+
+	@Override
+	public boolean leaveHouse(CharSequence userName) throws AvroRemoteException {
+		if(!connectedUsers.containsKey(userName.toString())){
+			throw new AvroRuntimeException("User hasnt joined the system yet");
+		}
+		userlocation.put(userName.toString(), true);
+		return true;
 	}
 }
