@@ -95,18 +95,30 @@ public class ServerExe implements ServerProtocol {
 			String name = "";
 			switch (type.toString()) {
 			case "light":
+				if(connectedLights.containsValue(ip)){
+					break;
+				}
 				name = "Light" + connectedLights.size();
 				connectedLights.put(name, ip);
 				break;
 			case "temperature sensor":
+				if(connectedTS.containsValue(ip)){
+					break;
+				}
 			name = "TS" + connectedTS.size();
 			connectedTS.put(name, ip);
 			break;
 		case "fridge":
+			if(connectedFridges.containsValue(ip)){
+				break;
+			}
 			name = "Fridge" + connectedFridges.size();
 			connectedFridges.put(name, ip);
 			break;
 		case "user":
+			if(connectedUsers.containsValue(ip)){
+				break;
+			}
 			name = "User" + connectedUsers.size();
 			connectedUsers.put(name, ip);
 			break;

@@ -49,8 +49,10 @@ public class TempSensImpl implements TSProtocol {
 			ServerSocket s = new ServerSocket(0);
 			portnumber = s.getLocalPort();
 			s.close();
-			
-			userName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
+			String newuserName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
+			if(newuserName != ""){
+				userName = newuserName;
+			}
 			System.out.println(userName);
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server
@@ -121,7 +123,11 @@ public class TempSensImpl implements TSProtocol {
 				//Connect to server to send status update and join
 				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-				userName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
+				String newuserName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
+				if(newuserName != ""){
+					userName = newuserName;
+				}
+				System.out.println(userName);
 				proxy.updateTemperature(userName, record);
 				client.close();
 			} catch (Exception e){
