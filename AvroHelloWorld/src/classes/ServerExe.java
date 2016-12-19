@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import org.apache.avro.AvroRemoteException;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.SaslSocketTransceiver;
 import org.apache.avro.ipc.Server;
@@ -28,6 +29,7 @@ import sourcefiles.TSProtocol;
 import sourcefiles.UserProtocol;
 import sourcefiles.TemperatureRecord;
 import utility.NetworkDiscoveryServer;
+import utility.TemperatureMeasurementRecord;
 
 
 public class ServerExe implements ServerProtocol {
@@ -35,7 +37,7 @@ public class ServerExe implements ServerProtocol {
 	private static Map<String, CharSequence> connectedLights = new HashMap<String, CharSequence>();
 	private static Map<String, CharSequence> connectedFridges = new HashMap<String, CharSequence>();
 	private static Map<String, CharSequence> connectedTS = new HashMap<String, CharSequence>();
-	private Map<String, Vector<TemperatureRecord>> temperatures = new HashMap<String, Vector<TemperatureRecord>>();
+	private Vector<TemperatureMeasurementRecord> temperatures = new Vector<TemperatureMeasurementRecord>();
 	private static Scanner keyboard = new Scanner(System.in);
 	private static boolean stayOpen=true;
 	
@@ -245,21 +247,19 @@ public class ServerExe implements ServerProtocol {
 	public int showCurrentHouseTemp() throws AvroRemoteException {
 		int currenttemperature = 0;
 		int counter = 0;
-		for (Entry<String, Vector<TemperatureRecord>> entry : temperatures.entrySet())
-		{
-			counter += 1;
-			currenttemperature += entry.getValue().lastElement().temperature;
+		if(temperatures.size() == 0){
+			throw new AvroRuntimeException("NoMeasurementsError");
 		}
-		if(counter == 0){
-			return 0;
-		}
-		return currenttemperature/counter;
+		return (int) temperatures.lastElement().record.temperature;
 	}
 
 	@Override
 	public Map<CharSequence, Integer> showTempHistory() throws AvroRemoteException {
-		// TODO Auto-generated method stub
-		return null;
+		Map<CharSequence, Integer> returnmap = new HashMap<CharSequence, Integer>();
+		for(TemperatureMeasurementRecord record: temperatures){
+			returnmap.put(record.record.time, (int) record.record.temperature);
+		}
+		return returnmap;
 	}
 
 	@Override
@@ -288,16 +288,24 @@ public class ServerExe implements ServerProtocol {
 	
 	@Override
 	public Void updateTemperature(CharSequence sensorName, TemperatureRecord sensorValue) throws AvroRemoteException {
+		double temperature = sensorValue.temperature;
+		
 		if (connectedTS.containsKey(sensorName.toString())) {
-			Vector<TemperatureRecord> records = temperatures.get(sensorName.toString());
-			if(records == null){
-				//No entries for this sensor have been made yet, so add a vector with the entries
-				Vector<TemperatureRecord> newrecords = new Vector<TemperatureRecord>();
-				newrecords.add(sensorValue);
-				temperatures.put(sensorName.toString(), newrecords);
-			}else{
-				records.add(sensorValue);
-				temperatures.put(sensorName.toString(), records);
+			boolean Exists = false;
+			for (TemperatureMeasurementRecord record : temperatures) {
+				if(record.isTime(sensorValue.time.toString())){
+					record.addTemperature(sensorValue.temperature, sensorValue.time.toString());
+					Exists = true;
+					break;
+				}
+		    }
+			
+			if(!Exists){
+				System.out.println("test");
+				//No measurements for time x have been made yet, so add it
+				TemperatureMeasurementRecord temprecord = new TemperatureMeasurementRecord();
+				temprecord.addTemperature(sensorValue.temperature, sensorValue.time.toString());
+				temperatures.add(temprecord);
 			}
 		}
 		return null;

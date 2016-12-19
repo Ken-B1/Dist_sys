@@ -92,6 +92,7 @@ public class TempSensImpl implements TSProtocol {
 				TemperatureRecord newrecord = new TemperatureRecord(currentTime.toString(),currentTemp);
 				temperatures.addElement(newrecord);
 				System.out.println("Current temperature of sensor:" + currentTemp);
+				sendToServer(newrecord);
 			}
 			
 			try {

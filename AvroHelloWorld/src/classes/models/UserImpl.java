@@ -7,7 +7,9 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.Map.Entry;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketServer;
@@ -271,8 +273,13 @@ public class UserImpl implements UserProtocol {
 		try {	
 			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			userName = proxy.showTempHistory().toString();
+			Map<CharSequence, Integer> temperatures = proxy.showTempHistory();
 			client.close();
+			
+			for(Entry<CharSequence, Integer> entry : temperatures.entrySet()){
+				System.out.println("test");
+				System.out.println(entry.getKey().toString() + ": " + entry.getValue());
+			}
 			//Start the procedure of updating temperature and sending it to the server
 		} catch(AvroRemoteException e){
 			System.err.println("Error joining");
