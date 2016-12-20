@@ -13,6 +13,7 @@ import java.util.Scanner;
 import java.util.Map.Entry;
 
 import org.apache.avro.AvroRemoteException;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.ipc.SaslSocketServer;
 import org.apache.avro.ipc.SaslSocketTransceiver;
 import org.apache.avro.ipc.Server;
@@ -192,10 +193,7 @@ public class UserImpl implements UserProtocol {
 		}
 		try {	
 			Scanner keyboard = new Scanner(System.in);
-			System.out.println("Give fridge name");		
-			String selectedType = keyboard.nextLine();
-			
-			
+					
 			Transceiver client = new SaslSocketTransceiver(server);
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 			List<String> fridges= new ArrayList<String>();
@@ -204,6 +202,11 @@ public class UserImpl implements UserProtocol {
 				fridges.add(fridge.toString());
 			}
 			
+			//Check if the list contains any fridges
+			if(fridges.isEmpty()){
+				System.out.println("You dont have any smartfridges connected to the server.");
+				return;
+			}
 			String fridgeName;
 			do {
 				System.out.println("Chose one of the following fridges:");
@@ -256,6 +259,12 @@ public class UserImpl implements UserProtocol {
 			
 			for(CharSequence fridge:proxy.showConnectedFridges()){
 				fridges.add(fridge.toString());
+			}
+			
+			//Check if the list contains any fridges
+			if(fridges.isEmpty()){
+				System.out.println("You dont have any smartfridges connected to the server.");
+				return;
 			}
 			
 			do {
@@ -356,10 +365,10 @@ public class UserImpl implements UserProtocol {
 			System.out.println(proxy.showCurrentHouseTemp());
 			client.close();
 			//Start the procedure of updating temperature and sending it to the server
-		} catch(AvroRemoteException e){
-			System.err.println("Error joining");
-			e.printStackTrace(System.err);
-			System.exit(1);
+		} catch(AvroRuntimeException e){
+			//No temperature sensors are added to the system
+			System.err.println(e.getMessage());
+			System.out.println("Maybe you need to buy some temperature sensors.");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -392,10 +401,10 @@ public class UserImpl implements UserProtocol {
 				System.out.println(entry.getKey().toString() + ": " + entry.getValue());
 			}
 			//Start the procedure of updating temperature and sending it to the server
-		} catch(AvroRemoteException e){
-			System.err.println("Error joining");
-			e.printStackTrace(System.err);
-			System.exit(1);
+		} catch(AvroRuntimeException e){
+			//No temperature sensors are added to the system
+			System.err.println(e.getMessage());
+			System.out.println("Maybe you need to buy some temperature sensors.");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

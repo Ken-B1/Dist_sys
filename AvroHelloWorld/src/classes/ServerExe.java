@@ -257,6 +257,9 @@ public class ServerExe implements ServerProtocol {
 
 	@Override
 	public Map<CharSequence, Integer> showTempHistory() throws AvroRemoteException {
+		if(temperatures.size() == 0){
+			throw new AvroRuntimeException("NoMeasurementsError");
+		}
 		Map<CharSequence, Integer> returnmap = new HashMap<CharSequence, Integer>();
 		for(TemperatureMeasurementRecord record: temperatures){
 			returnmap.put(record.record.time, (int) record.record.temperature);
@@ -266,6 +269,8 @@ public class ServerExe implements ServerProtocol {
 
 	@Override
 	public CharSequence connectUserToFridge(CharSequence fridgeName)throws AvroRemoteException {
+		//Add concurency on a later date
+		System.out.println(connectedFridges.get(fridgeName.toString()));
 		return connectedFridges.get(fridgeName.toString());
 	}
 
