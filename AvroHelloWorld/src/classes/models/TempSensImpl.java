@@ -39,10 +39,10 @@ public class TempSensImpl implements TSProtocol {
 		temperatures = new Vector<TemperatureRecord>();
 		//Try to connect to server 
 		try {
-			NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient(this, "Ts");
+			NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
 			server = FindServer.findServer();
 			serverFound = true;
-			Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
+			Transceiver client = new SaslSocketTransceiver(server);
 			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 			
 			//Use serversocket to find open socket
@@ -105,11 +105,10 @@ public class TempSensImpl implements TSProtocol {
 	}
 	
 	private void sendToServer(TemperatureRecord record){
-		System.out.println("test");
 		//First check if the server has been found yet
 		if(!serverFound){
 			try{
-				NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient(this, "Ts");
+				NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
 				server = FindServer.findServer();
 				serverFound = true;
 			} catch (IOException e) {
@@ -122,7 +121,7 @@ public class TempSensImpl implements TSProtocol {
 		if(serverFound){
 			try {
 				//Connect to server to send status update and join
-				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(),6789));
+				Transceiver client = new SaslSocketTransceiver(server);
 				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 				String newuserName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
 				if(newuserName != ""){

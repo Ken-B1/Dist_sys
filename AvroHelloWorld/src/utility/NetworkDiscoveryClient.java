@@ -14,12 +14,8 @@ import classes.models.TempSensImpl;
 public class NetworkDiscoveryClient{
 	InetAddress serveraddress;
 	int portnumber;
-	Object caller;
-	String type;
 	
-	public NetworkDiscoveryClient(Object x, String y){
-		caller = x;
-		type = y;
+	public NetworkDiscoveryClient(){
 	}
 	
 	public InetSocketAddress findServer() throws SocketTimeoutException, IOException{
@@ -48,7 +44,6 @@ public class NetworkDiscoveryClient{
           //Check if the message is correct
           String message = new String(receivePacket.getData()).trim();
           if (message.equals("DISCOVER_SERVER_RESPONSE")) {
-            TempSensImpl sensor = (TempSensImpl)(caller);
             InetSocketAddress address = new InetSocketAddress(receivePacket.getAddress(), 6789);
             c.close();
             return address;
