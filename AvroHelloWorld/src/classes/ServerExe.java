@@ -366,7 +366,8 @@ public class ServerExe implements ServerProtocol {
 		if(!connectedUsers.containsKey(userName.toString())){
 			throw new AvroRuntimeException("User hasnt joined the system yet");
 		}
-		userlocation.put(userName.toString(), false);	
+		userlocation.put(userName.toString(), false);
+		notifyUsers(userName, " entered ");
 		return true;
 	}
 
@@ -376,6 +377,29 @@ public class ServerExe implements ServerProtocol {
 			throw new AvroRuntimeException("User hasnt joined the system yet");
 		}
 		userlocation.put(userName.toString(), true);
+		notifyUsers(userName, " left ");
 		return true;
+	}
+	
+	//Method that will notify all users when someone leaves/enters the house
+	//State = "entered" or "left" depending on what the user did
+	private void notifyUsers(CharSequence userName, CharSequence state){
+		for (Entry<String, CharSequence> entry : connectedUsers.entrySet())
+		{
+			try {
+				String[] userValue = entry.getValue().toString().split(",");
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+				UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+				System.out.println(proxy.notifyUsers(userName, state));
+				client.close();
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
 	}
 }

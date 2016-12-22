@@ -4,6 +4,10 @@
  	"notifyOfEmptyFridge": {
     	"request": [{"name": "fridgeName", "type": "string"}],
     	"response": "string"
+    },
+     "notifyUsers": {
+    	"request": [{"name": "userName", "type": "string"}, {"name": "state", "type": "string"}],
+    	"response": "null"
     }
   }
 }

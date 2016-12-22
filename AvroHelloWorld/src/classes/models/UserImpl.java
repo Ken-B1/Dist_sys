@@ -499,6 +499,12 @@ public class UserImpl implements UserProtocol {
 		System.out.println(fridgeName +" is empty!!");
 		return userName + " received empty fridge";
 	}
+
+	@Override
+	public Void notifyUsers(CharSequence userName, CharSequence state) throws AvroRemoteException {
+		System.out.println(userName.toString() + state + "the house.");
+		return null;
+	}
 	
 	
 }
