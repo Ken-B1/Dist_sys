@@ -40,7 +40,6 @@ public class Heartbeat implements Runnable{
 				try{
 					Transceiver client = new SaslSocketTransceiver(server);
 					ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-					System.out.println(userName);
 					proxy.showHeartbeat(userName);
 					client.close();
 				} catch(IOException e){

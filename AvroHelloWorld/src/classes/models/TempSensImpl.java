@@ -36,21 +36,18 @@ public class TempSensImpl implements TSProtocol {
 	private Vector<TemperatureRecord> temperatures;
 	private Heartbeat heartbeat;
 	private Thread heartbeatThread;
-	
+
+	//Exceptionhandler for heartbeat thread 
+	Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
+	    public void uncaughtException(Thread th, Throwable ex) {
+	    	//Catches the exceptions thrown by the heartbeat thread(indicating server wasnt found)
+	        System.out.println("Couldnt find server during heartbeat");
+	        server = new InetSocketAddress("0.0.0.0", 0);
+	        serverFound = false;
+	    }
+	};
 	public TempSensImpl(double temperature) throws InterruptedException{
 		heartbeat = new Heartbeat();
-		Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
-		    public void uncaughtException(Thread th, Throwable ex) {
-		    	//Catches the exceptions thrown by the heartbeat thread(indicating server wasnt found)
-		        System.out.println("Couldnt find server during heartbeat");
-		        server = new InetSocketAddress("0.0.0.0", 0);
-		        serverFound = false;
-		    }
-		};
-		heartbeatThread = new Thread(heartbeat);
-		heartbeatThread.setUncaughtExceptionHandler(h);
-		heartbeatThread.start();
-		
 		serverFound = false;
 		temperatures = new Vector<TemperatureRecord>();
 		//Try to connect to server 
@@ -97,6 +94,9 @@ public class TempSensImpl implements TSProtocol {
 			server = FindServer.findServer();
 			serverFound = true;
 			heartbeat.setServer(server);
+			heartbeatThread = new Thread(heartbeat);
+			heartbeatThread.setUncaughtExceptionHandler(h);
+			heartbeatThread.start();
 		} catch(IOException e){
 			//Server can't be found
 			serverFound = false;
@@ -109,6 +109,7 @@ public class TempSensImpl implements TSProtocol {
 		//X = time between updates = 1 min
 		long x = 5000;
 		while(true){	
+	        System.out.println(heartbeatThread.getState());
 			//Update temperature with random value between -1 and 1
 			LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 			if(!currentTime.equals(LocalTime.parse(temperatures.lastElement().time) ) ){

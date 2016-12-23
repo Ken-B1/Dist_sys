@@ -25,6 +25,7 @@ import sourcefiles.FridgeProtocol;
 import sourcefiles.LightProtocol;
 import sourcefiles.ServerProtocol;
 import sourcefiles.UserProtocol;
+import utility.Heartbeat;
 import utility.NetworkDiscoveryClient;
 
 public class UserImpl implements UserProtocol {
@@ -32,34 +33,24 @@ public class UserImpl implements UserProtocol {
 	private int portNumber; 
 	private InetSocketAddress server;
 	private boolean serverFound;
-	
+	private Heartbeat heartbeat;
+	private Thread heartbeatThread;
+	Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
+	    public void uncaughtException(Thread th, Throwable ex) {
+	    	//Catches the exceptions thrown by the heartbeat thread(indicating server wasnt found)
+	        System.out.println("Couldnt find server during heartbeat");
+	        server = new InetSocketAddress("0.0.0.0", 0);
+	        serverFound = false;
+	        connectToServer();
+	    }
+	};
 	
 	public UserImpl(){
-		try {	
-			ServerSocket s = new ServerSocket(0);
-			portNumber = s.getLocalPort();
-			s.close();
-			
-			//Use the networkdiscoveryutility to find the server
-			connectToServer();
-			Transceiver client = new SaslSocketTransceiver(server);
-			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress() + "," + portNumber).toString();
-			System.out.println(userName);
-			client.close();
-			//Start the procedure of updating temperature and sending it to the server
-		} catch(AvroRemoteException e){
-			System.err.println("Error joining");
-			e.printStackTrace(System.err);
-			System.exit(1);
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (SocketTimeoutException e){
-			System.out.println("Server isnt found");
-			serverFound = false;
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		userName = "";
+		heartbeat = new Heartbeat();
+		//Use the networkdiscoveryutility to find the server
+		connectToServer();
+		//Start the procedure of updating temperature and sending it to the server
 		
 		//Create a server for this client
 		Server server;
@@ -76,16 +67,7 @@ public class UserImpl implements UserProtocol {
 	public void requestClients(){
 		//Method that will request the other clients from the server and display it to this user
 		if(!serverFound){
-			try {
-				connectToServer();
-			} catch (SocketTimeoutException e) {
-				// TODO Auto-generated catch block
-				System.out.println("Cant connect to server");
-				return;
-			} catch (IOException e){
-				e.printStackTrace();
-				return;
-			}
+			connectToServer();
 		}
 	
 		
@@ -113,17 +95,9 @@ public class UserImpl implements UserProtocol {
 	public void requestLights(){
 		//Method that requests all lights from the server
 		if(!serverFound){
-			try {
-				connectToServer();
-			} catch (SocketTimeoutException e) {
-				// TODO Auto-generated catch block
-				System.out.println("Cant connect to server");
-				return;
-			} catch (IOException e){
-				e.printStackTrace();
-				return;
-			}
+			connectToServer();
 		}
+	
 		
 		try {	
 			Transceiver client = new SaslSocketTransceiver(server);
@@ -144,17 +118,9 @@ public class UserImpl implements UserProtocol {
 	public void switchLight(){
 		//Method that will request to switch the status of a light
 		if(!serverFound){
-			try {
-				connectToServer();
-			} catch (SocketTimeoutException e) {
-				// TODO Auto-generated catch block
-				System.out.println("Cant connect to server");
-				return;
-			} catch (IOException e){
-				e.printStackTrace();
-				return;
-			}
+			connectToServer();
 		}
+	
 		
 		try {	
 			Scanner keyboard = new Scanner(System.in);
@@ -180,17 +146,10 @@ public class UserImpl implements UserProtocol {
 	public void getFridgeContent(){
 		//Method that will request the content of a certain fridge
 		if(!serverFound){
-			try {
-				connectToServer();
-			} catch (SocketTimeoutException e) {
-				// TODO Auto-generated catch block
-				System.out.println("Cant connect to server");
-				return;
-			} catch (IOException e){
-				e.printStackTrace();
-				return;
-			}
+			connectToServer();
 		}
+	
+		
 		try {	
 			Scanner keyboard = new Scanner(System.in);
 					
@@ -239,17 +198,9 @@ public class UserImpl implements UserProtocol {
 		String[] fridgeValue= {};
 		//Method that will try to connect to a fridge
 		if(!serverFound){
-			try {
-				connectToServer();
-			} catch (SocketTimeoutException e) {
-				// TODO Auto-generated catch block
-				System.out.println("Cant connect to server");
-				return;
-			} catch (IOException e){
-				e.printStackTrace();
-				return;
-			}
+			connectToServer();
 		}
+	
 		
 		try {	
 			String fridgeName="";
@@ -347,17 +298,9 @@ public class UserImpl implements UserProtocol {
 	public void getTemperature(){
 		//Method that will request the current temperature of the house
 		if(!serverFound){
-			try {
-				connectToServer();
-			} catch (SocketTimeoutException e) {
-				// TODO Auto-generated catch block
-				System.out.println("Cant connect to server");
-				return;
-			} catch (IOException e){
-				e.printStackTrace();
-				return;
-			}
+			connectToServer();
 		}
+	
 		
 		try {	
 			Transceiver client = new SaslSocketTransceiver(server);
@@ -377,17 +320,9 @@ public class UserImpl implements UserProtocol {
 	public void getTemperatureHistory(){
 		//Method that will request the history of temperatures in the house
 		if(!serverFound){
-			try {
-				connectToServer();
-			} catch (SocketTimeoutException e) {
-				// TODO Auto-generated catch block
-				System.out.println("Cant connect to server");
-				return;
-			} catch (IOException e){
-				e.printStackTrace();
-				return;
-			}
+			connectToServer();
 		}
+	
 		
 		
 		try {	
@@ -413,17 +348,9 @@ public class UserImpl implements UserProtocol {
 	public void enterHouse(){
 		//Method to enter the house
 		if(!serverFound){
-			try {
-				connectToServer();
-			} catch (SocketTimeoutException e) {
-				// TODO Auto-generated catch block
-				System.out.println("Cant connect to server");
-				return;
-			} catch (IOException e){
-				e.printStackTrace();
-				return;
-			}
+			connectToServer();
 		}
+	
 		
 		
 		try{
@@ -450,17 +377,9 @@ public class UserImpl implements UserProtocol {
 	public void leaveHouse(){
 		//Method to leave the house
 		if(!serverFound){
-			try {
-				connectToServer();
-			} catch (SocketTimeoutException e) {
-				// TODO Auto-generated catch block
-				System.out.println("Cant connect to server");
-				return;
-			} catch (IOException e){
-				e.printStackTrace();
-				return;
-			}
+			connectToServer();
 		}
+	
 		
 		
 		try{
@@ -484,16 +403,6 @@ public class UserImpl implements UserProtocol {
 		}
 	}
 
-	private void connectToServer() throws IOException{
-		//Method that will connect to the server
-		if(!serverFound){
-			//Make sure the server hasnt been found yet
-				NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-				server = FindServer.findServer();
-				serverFound = true;
-		}
-	}
-	
 	@Override
 	public CharSequence notifyOfEmptyFridge(CharSequence fridgeName)throws AvroRemoteException {
 		System.out.println(fridgeName +" is empty!!");
@@ -504,6 +413,45 @@ public class UserImpl implements UserProtocol {
 	public Void notifyUsers(CharSequence userName, CharSequence state) throws AvroRemoteException {
 		System.out.println(userName.toString() + state + "the house.");
 		return null;
+	}
+
+	private void connectToServer(){
+		//Method that will connect to the server
+		while(!serverFound){
+			//Make sure the server hasnt been found yet
+			try{
+				NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
+				server = FindServer.findServer();
+				
+				//Server has been found, so enter it
+				ServerSocket s = new ServerSocket(0);
+				portNumber = s.getLocalPort();
+				s.close();
+				
+				Transceiver client = new SaslSocketTransceiver(server);
+				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+				userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress() + "," + portNumber).toString();
+				System.out.println(userName);
+				client.close();
+				
+				
+				serverFound = true;
+				heartbeat.setServer(server);
+				heartbeat.setuserName(userName);
+				heartbeatThread = new Thread(heartbeat);
+				heartbeatThread.setUncaughtExceptionHandler(h);
+				heartbeatThread.start();
+			} catch(IOException e){
+				System.out.println("Searching for server.");
+			}
+			//Try again in 1 second
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	
