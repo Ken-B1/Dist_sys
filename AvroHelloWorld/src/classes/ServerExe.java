@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -29,6 +30,7 @@ import sourcefiles.TSProtocol;
 import sourcefiles.UserProtocol;
 import sourcefiles.TemperatureRecord;
 import utility.NetworkDiscoveryServer;
+import utility.ServerHeartbeatMaintainer;
 import utility.TemperatureMeasurementRecord;
 
 
@@ -39,11 +41,13 @@ public class ServerExe implements ServerProtocol {
 	private static Map<String, CharSequence> connectedTS = new HashMap<String, CharSequence>();
 	private Vector<TemperatureMeasurementRecord> temperatures = new Vector<TemperatureMeasurementRecord>();
 	private Map<String, Boolean> userlocation = new HashMap<String, Boolean>();	//Maps a user to a location (1 = outside, 0 = inside)
+	ServerHeartbeatMaintainer heartbeat = new ServerHeartbeatMaintainer(this);
+	Thread xxx = new Thread(heartbeat);
 	private static Scanner keyboard = new Scanner(System.in);
 	private static boolean stayOpen=true;
 	
 	public static void main(String[] args) {
-		Server server = null;		
+		Server server = null;
 		try {
 			Thread server1 = new Thread(new NetworkDiscoveryServer());
 			server1.start();
@@ -94,39 +98,46 @@ public class ServerExe implements ServerProtocol {
 
 	@Override
 	public CharSequence enter(CharSequence type, CharSequence ip) throws AvroRemoteException {
+			if(xxx.getState() == Thread.State.NEW){
+				xxx.start();
+			}
 			System.out.println("Client coming in");
 			String name = "";
-			switch (type.toString()) {
+		switch (type.toString()) {
 			case "light":
 				if(connectedLights.containsValue(ip)){
 					break;
 				}
 				name = "Light" + connectedLights.size();
 				connectedLights.put(name, ip);
+				heartbeat.updateClient(name);
 				break;
 			case "temperature sensor":
 				if(connectedTS.containsValue(ip)){
 					break;
 				}
-			name = "TS" + connectedTS.size();
-			connectedTS.put(name, ip);
-			break;
-		case "fridge":
-			if(connectedFridges.containsValue(ip)){
+				name = "TS" + connectedTS.size();
+				connectedTS.put(name, ip);
+				heartbeat.updateClient(name);
+				break;
+			case "fridge":
+				if(connectedFridges.containsValue(ip)){
+					break;
+				}
+				name = "Fridge" + connectedFridges.size();
+				connectedFridges.put(name, ip);
+				heartbeat.updateClient(name);
+				break;
+			case "user":
+				if(connectedUsers.containsValue(ip)){
+					break;
+				}
+				name = "User" + connectedUsers.size();
+				connectedUsers.put(name, ip);
+				userlocation.put(name,  false);
+				heartbeat.updateClient(name);
 				break;
 			}
-			name = "Fridge" + connectedFridges.size();
-			connectedFridges.put(name, ip);
-			break;
-		case "user":
-			if(connectedUsers.containsValue(ip)){
-				break;
-			}
-			name = "User" + connectedUsers.size();
-			connectedUsers.put(name, ip);
-			userlocation.put(name,  false);
-			break;
-		}
 		return name;
 	}
 
@@ -400,6 +411,33 @@ public class ServerExe implements ServerProtocol {
 				e.printStackTrace();
 			}
 			
+		}
+	}
+
+	@Override
+	public Void showHeartbeat(CharSequence userName) throws AvroRemoteException {
+		heartbeat.updateClient(userName.toString());
+		return null;
+	}
+
+	public void removeClient(String userName) {
+		// Heartbeat manager has indicated that user isnt alive anymore
+		System.out.println("removing " + userName.toString());
+		String type = userName.toString().split("[0-9]")[0];
+		switch (type) {
+			case "Light":
+				connectedLights.remove(userName.toString());
+				break;
+			case "TS":
+				connectedTS.remove(userName.toString());
+				break;
+			case "Fridge":
+				connectedFridges.remove(userName.toString());
+				break;
+			case "User":
+				connectedUsers.remove(userName.toString());
+				userlocation.remove(userName.toString());
+				break;
 		}
 	}
 }

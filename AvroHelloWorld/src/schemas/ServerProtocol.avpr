@@ -70,6 +70,10 @@
     "notifyUsersOfEmptyFridge": {
      "request": [{"name": "fridgeName", "type": "string"}],
      "response": "string"
+    },
+    "showHeartbeat":{
+     "request": [{"name": "userName", "type": "string"}],
+     "response": "null"
     }
   }
 }

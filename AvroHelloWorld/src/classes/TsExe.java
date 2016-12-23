@@ -9,7 +9,12 @@ public class TsExe {
 		Scanner reader = new Scanner(System.in);  // Reading from System.in
 		System.out.println("Enter a number: ");
 		int n = reader.nextInt();
-		TempSensImpl ts = new TempSensImpl(n);
+		try {
+			TempSensImpl ts = new TempSensImpl(n);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		Scanner keyboard = new Scanner(System.in);
 		String selectedType;
 		do {

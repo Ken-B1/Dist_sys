@@ -25,6 +25,7 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 import sourcefiles.TemperatureRecord;
 import sourcefiles.ServerProtocol;
 import sourcefiles.TSProtocol;
+import utility.Heartbeat;
 import utility.NetworkDiscoveryClient;
 
 public class TempSensImpl implements TSProtocol {
@@ -33,41 +34,54 @@ public class TempSensImpl implements TSProtocol {
 	private InetSocketAddress server;
 	private boolean serverFound;
 	private Vector<TemperatureRecord> temperatures;
+	private Heartbeat heartbeat;
+	private Thread heartbeatThread;
 	
-	public TempSensImpl(double temperature){
+	public TempSensImpl(double temperature) throws InterruptedException{
+		heartbeat = new Heartbeat();
+		Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
+		    public void uncaughtException(Thread th, Throwable ex) {
+		    	//Catches the exceptions thrown by the heartbeat thread(indicating server wasnt found)
+		        System.out.println("Couldnt find server during heartbeat");
+		        server = new InetSocketAddress("0.0.0.0", 0);
+		        serverFound = false;
+		    }
+		};
+		heartbeatThread = new Thread(heartbeat);
+		heartbeatThread.setUncaughtExceptionHandler(h);
+		heartbeatThread.start();
+		
 		serverFound = false;
 		temperatures = new Vector<TemperatureRecord>();
 		//Try to connect to server 
 		try {
-			NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-			server = FindServer.findServer();
-			serverFound = true;
-			Transceiver client = new SaslSocketTransceiver(server);
-			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			
+			searchServer();
 			//Use serversocket to find open socket
 			ServerSocket s = new ServerSocket(0);
 			portnumber = s.getLocalPort();
 			s.close();
-			String newuserName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
-			if(newuserName != ""){
-				userName = newuserName;
+			
+			if(serverFound){
+				Transceiver client = new SaslSocketTransceiver(server);
+				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+				String newuserName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
+				if(newuserName != ""){
+					userName = newuserName;
+					heartbeat.setuserName(newuserName);
+				}
+				client.close();
 			}
+			
 			System.out.println(userName);
-			client.close();
 			//Start the procedure of updating temperature and sending it to the server
 		} catch(AvroRemoteException e){
-			System.err.println("Error joining");
+			System.err.println("Something went wrong while trying to join the server");
 			e.printStackTrace(System.err);
 			System.exit(1);
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (SocketTimeoutException e){
-			System.out.println("Server isnt found");
-			serverFound = false;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		LocalTime currenttime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 		TemperatureRecord newtemp = new TemperatureRecord(currenttime.toString(), temperature);
 		temperatures.addElement(newtemp);
@@ -76,8 +90,19 @@ public class TempSensImpl implements TSProtocol {
 		System.out.println("TempSens created!");
 	}
 	
-	public void setServer(InetSocketAddress address){
-		server = address;
+
+	public void searchServer(){
+		try{
+			NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
+			server = FindServer.findServer();
+			serverFound = true;
+			heartbeat.setServer(server);
+		} catch(IOException e){
+			//Server can't be found
+			serverFound = false;
+			heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
+			
+		}
 	}
 	
 	private void updateTemperature(){
@@ -107,14 +132,7 @@ public class TempSensImpl implements TSProtocol {
 	private void sendToServer(TemperatureRecord record){
 		//First check if the server has been found yet
 		if(!serverFound){
-			try{
-				NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-				server = FindServer.findServer();
-				serverFound = true;
-			} catch (IOException e) {
-				System.out.println("Server isnt found");
-				serverFound = false;
-			}
+			searchServer();
 		}
 		
 		//If server has been found, try to send new temperature
@@ -126,8 +144,8 @@ public class TempSensImpl implements TSProtocol {
 				String newuserName = proxy.enter("temperature sensor", InetAddress.getLocalHost().toString() + "," + portnumber).toString();
 				if(newuserName != ""){
 					userName = newuserName;
+					heartbeat.setuserName(newuserName);
 				}
-				System.out.println(userName);
 				proxy.updateTemperature(userName, record);
 				client.close();
 			} catch (Exception e){
