@@ -109,7 +109,6 @@ public class TempSensImpl implements TSProtocol {
 		//X = time between updates = 1 min
 		long x = 5000;
 		while(true){	
-	        System.out.println(heartbeatThread.getState());
 			//Update temperature with random value between -1 and 1
 			LocalTime currentTime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 			if(!currentTime.equals(LocalTime.parse(temperatures.lastElement().time) ) ){

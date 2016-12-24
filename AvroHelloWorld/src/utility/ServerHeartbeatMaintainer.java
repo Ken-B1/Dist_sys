@@ -4,17 +4,20 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Vector;
+
 import static java.time.temporal.ChronoUnit.SECONDS;
 
 import classes.ServerExe;
+import classes.models.ServerImpl;
 
 //The maintainer will hold all the heartbeats of the devices and notify the server if a device hasnt answered in a while
 public class ServerHeartbeatMaintainer implements Runnable{
 	//Server linked to this maintainer
-	ServerExe server;
+	ServerImpl server;
 	private Map<String, String> heartbeats = new HashMap<String, String>();  //Maps a client to a time since last heartbeat was received
 	
-	public ServerHeartbeatMaintainer(ServerExe server){
+	public ServerHeartbeatMaintainer(ServerImpl server){
 		this.server = server;
 	}
 	
@@ -33,6 +36,7 @@ public class ServerHeartbeatMaintainer implements Runnable{
 		while(true){
 			System.out.println("Checking for aliveness");
 			LocalDateTime now = LocalDateTime.now();
+			Vector<String> removeValues = new Vector<String>();
 			for (Entry<String, String> entry : heartbeats.entrySet())
 			{
 				LocalDateTime lastTime = LocalDateTime.parse(entry.getValue());
@@ -40,10 +44,13 @@ public class ServerHeartbeatMaintainer implements Runnable{
 				if(delay > 30){
 					//Havent heard from the device in over 30 seconds, so notify server
 					server.removeClient(entry.getKey());
-					this.leaveClient(entry.getKey());
+					removeValues.add(entry.getKey());
 				}
 			}
 			
+			for (String x : removeValues){
+				this.leaveClient(x);
+			}
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
