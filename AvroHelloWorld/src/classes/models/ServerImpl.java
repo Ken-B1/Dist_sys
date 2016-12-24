@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,26 +24,59 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 import classes.ServerExe;
 import sourcefiles.FridgeProtocol;
 import sourcefiles.LightProtocol;
+import sourcefiles.ReplicationData;
 import sourcefiles.ServerProtocol;
+import sourcefiles.TemperatureAggregate;
 import sourcefiles.TemperatureRecord;
 import sourcefiles.UserProtocol;
+import sourcefiles.replicationrecord;
 import utility.NetworkDiscoveryServer;
 import utility.ServerHeartbeatMaintainer;
 import utility.TemperatureMeasurementRecord;
 
 public class ServerImpl implements ServerProtocol {
-	private static Map<String, CharSequence> connectedUsers = new HashMap<String, CharSequence>();
-	private static Map<String, CharSequence> connectedLights = new HashMap<String, CharSequence>();
-	private static Map<String, CharSequence> connectedFridges = new HashMap<String, CharSequence>();
-	private static Map<String, CharSequence> connectedTS = new HashMap<String, CharSequence>();
-	private Vector<TemperatureMeasurementRecord> temperatures = new Vector<TemperatureMeasurementRecord>();
-	private Map<String, Boolean> userlocation = new HashMap<String, Boolean>();	//Maps a user to a location (1 = outside, 0 = inside)
+	private Map<CharSequence, CharSequence> connectedUsers = new HashMap<CharSequence, CharSequence>();
+	private Map<CharSequence, CharSequence> connectedLights = new HashMap<CharSequence, CharSequence>();
+	private Map<CharSequence, CharSequence> connectedFridges = new HashMap<CharSequence, CharSequence>();
+	private Map<CharSequence, CharSequence> connectedTS = new HashMap<CharSequence, CharSequence>();
+	private ArrayList<TemperatureMeasurementRecord> temperatures = new ArrayList<TemperatureMeasurementRecord>();
+	private Map<CharSequence, Boolean> userlocation = new HashMap<CharSequence, Boolean>();	//Maps a user to a location (1 = outside, 0 = inside)
 	ServerHeartbeatMaintainer heartbeat = new ServerHeartbeatMaintainer(this);
 	Thread xxx = new Thread(heartbeat);
 	private static boolean stayOpen=true;
 	SaslSocketServer server;
 	
 	public ServerImpl(){
+		try {
+			Thread server1 = new Thread(new NetworkDiscoveryServer());
+			server1.start();
+			server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this),new InetSocketAddress(InetAddress.getLocalHost(), 6789));
+			server.start();
+		} catch (IOException e) {
+			System.err.println("[error]: Failed to start server");
+			e.printStackTrace(System.err);
+			System.exit(1);
+		}
+		
+		while(stayOpen){
+			
+		}
+		server.close();
+	}
+	
+	public ServerImpl(ReplicationData data){
+		this.connectedUsers = data.getConnectedUsers();
+		this.connectedLights = data.getConnectedLights();
+		this.connectedFridges = data.getConnectedFridges();
+		this.connectedTS = data.getConnectedTS();
+		this.temperatures = new ArrayList<TemperatureMeasurementRecord>();
+		List<TemperatureAggregate> temperaturestemp = data.getTemperatures();
+		for(TemperatureAggregate x : temperaturestemp){
+			TemperatureMeasurementRecord newrecord = new TemperatureMeasurementRecord(x);
+			this.temperatures.add(newrecord);
+		}
+		this.userlocation = data.getUserlocation();
+		
 		try {
 			Thread server1 = new Thread(new NetworkDiscoveryServer());
 			server1.start();
@@ -102,6 +136,67 @@ public class ServerImpl implements ServerProtocol {
 				heartbeat.updateClient(name);
 				break;
 			}
+		
+		//Send update to all clients/fridges
+		for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet())
+		{
+			if(entry.getKey() == name){
+				continue;
+			}
+			try {
+				String[] userValue = entry.getValue().toString().split(",");
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+				UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+				proxy.enter(name, ip);
+				client.close();
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		
+		for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet())
+		{
+			if(entry.getKey() == name){
+				continue;
+			}
+			try {
+				String[] userValue = entry.getValue().toString().split(",");
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+				FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+				proxy.enter(name, ip);
+				client.close();
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		/*
+		for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet())
+		{
+			try {
+				String[] userValue = entry.getValue().toString().split(",");
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+				UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+				System.out.println(proxy.notifyUsers(userName, state));
+				client.close();
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}*/
 		return name;
 	}
 
@@ -110,19 +205,56 @@ public class ServerImpl implements ServerProtocol {
 		System.out.println(userName.toString().split("[0-9]")[0]);
 		switch (userName.toString().split("[0-9]")[0]) {
 		case "Light":
-			connectedLights.remove(userName.toString());
+			connectedLights.remove(userName);
 			break;
 		case "TS":
-			connectedTS.remove(userName.toString());
+			connectedTS.remove(userName);
 			break;
 		case "Fridge":
-			connectedFridges.remove(userName.toString());
+			connectedFridges.remove(userName);
 			break;
 		case "User":
-			connectedUsers.remove(userName.toString());
+			connectedUsers.remove(userName);
 			break;
 		}
 
+		//Send update to all clients/fridges
+		for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet())
+		{
+			try {
+				String[] userValue = entry.getValue().toString().split(",");
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+				FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+				proxy.leave(userName);
+				client.close();
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		
+		for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet())
+		{
+			try {
+				String[] userValue = entry.getValue().toString().split(",");
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+				UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+				proxy.leave(userName);
+				client.close();
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		
 		return userName + " has left";
 	}
 
@@ -132,27 +264,27 @@ public class ServerImpl implements ServerProtocol {
 		
 		List<CharSequence> clients = new ArrayList<CharSequence>();
 		
-		for (Entry<String, CharSequence> entry : connectedUsers.entrySet())
+		for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet())
 		{
 			String name = entry.getKey() + ", Location: " + (userlocation.get(entry.getKey()) ? "Outside" : "Inside");
 			clients.add(name);
 		}
 		
-		for (Entry<String, CharSequence> entry : connectedLights.entrySet())
+		for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet())
 		{
-			String name = entry.getKey();
+			String name = (String) entry.getKey();
 			clients.add(name);
 		}
 		
-		for (Entry<String, CharSequence> entry : connectedFridges.entrySet())
+		for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet())
 		{
-			String name = entry.getKey();
+			String name = (String) entry.getKey();
 			clients.add(name);
 		}
 		
-		for (Entry<String, CharSequence> entry : connectedTS.entrySet())
+		for (Entry<CharSequence, CharSequence> entry : connectedTS.entrySet())
 		{
-			String name = entry.getKey();
+			String name = (String) entry.getKey();
 			clients.add(name);
 		}
 		
@@ -163,9 +295,9 @@ public class ServerImpl implements ServerProtocol {
 	public List<CharSequence> getLightStatuses() throws AvroRemoteException {	
 		List<CharSequence> lightStatuses = new ArrayList<CharSequence>();
 
-		Set<Map.Entry<String, CharSequence>> set = connectedLights.entrySet();
+		Set<Map.Entry<CharSequence, CharSequence>> set = connectedLights.entrySet();
 
-		for (Map.Entry<String, CharSequence> light : set) {
+		for (Map.Entry<CharSequence, CharSequence> light : set) {
 			try {
 				String[] lightValue =light.getValue().toString().split(",");
 				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
@@ -222,15 +354,15 @@ public class ServerImpl implements ServerProtocol {
 
 	@Override
 	public int showCurrentHouseTemp() throws AvroRemoteException {
-		if(temperatures.size() == 0){
+		if(temperatures.isEmpty()){
 			throw new AvroRuntimeException("NoMeasurementsError");
 		}
-		return (int) temperatures.lastElement().record.temperature;
+		return (int) temperatures.get(temperatures.size()-1).record.getTemperature().intValue();
 	}
 
 	@Override
 	public Map<CharSequence, Integer> showTempHistory() throws AvroRemoteException {
-		if(temperatures.size() == 0){
+		if(temperatures.isEmpty()){
 			throw new AvroRuntimeException("NoMeasurementsError");
 		}
 		Map<CharSequence, Integer> returnmap = new HashMap<CharSequence, Integer>();
@@ -251,7 +383,7 @@ public class ServerImpl implements ServerProtocol {
 	public List<CharSequence> showConnectedFridges() throws AvroRemoteException {
 		List<CharSequence> fridges = new ArrayList<CharSequence>();
 		
-		for (Entry<String, CharSequence> entry : connectedFridges.entrySet())
+		for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet())
 		{
 			CharSequence name = entry.getKey();
 			fridges.add(name);
@@ -268,26 +400,67 @@ public class ServerImpl implements ServerProtocol {
 	
 	@Override
 	public Void updateTemperature(CharSequence sensorName, TemperatureRecord sensorValue) throws AvroRemoteException {
-		double temperature = sensorValue.temperature;
+		double temperature = sensorValue.getTemperature();
 		
 		if (connectedTS.containsKey(sensorName.toString())) {
 			boolean Exists = false;
+			TemperatureAggregate TA = new TemperatureAggregate();
 			for (TemperatureMeasurementRecord record : temperatures) {
-				if(record.isTime(sensorValue.time.toString())){
-					record.addTemperature(sensorValue.temperature, sensorValue.time.toString());
+				if(record.isTime(sensorValue.getTime().toString())){
+					record.addTemperature(temperature, sensorValue.getTime().toString());
+					TA = record.getAggregate();
+					System.out.println(record.getCounter());
 					Exists = true;
 					break;
 				}
 		    }
 			
 			if(!Exists){
-				System.out.println("test");
 				//No measurements for time x have been made yet, so add it
 				TemperatureMeasurementRecord temprecord = new TemperatureMeasurementRecord();
 				temprecord.addTemperature(sensorValue.temperature, sensorValue.time.toString());
+				TA = temprecord.getAggregate();
 				temperatures.add(temprecord);
 			}
+			
+			//Send update to all clients/fridges
+			for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet())
+			{
+				try {
+					String[] userValue = entry.getValue().toString().split(",");
+					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+					UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+					proxy.updateTemperature(TA);
+					client.close();
+				} catch (NumberFormatException e) {
+					e.printStackTrace();
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
+			}
+			
+			for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet())
+			{
+				try {
+					String[] userValue = entry.getValue().toString().split(",");
+					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+					FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+					proxy.updateTemperature(TA);
+					client.close();
+				} catch (NumberFormatException e) {
+					e.printStackTrace();
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
+			}
 		}
+
 		return null;
 	}
 
@@ -313,7 +486,7 @@ public class ServerImpl implements ServerProtocol {
 
 	@Override
 	public CharSequence notifyUsersOfEmptyFridge(CharSequence fridgeName)throws AvroRemoteException {
-		for (Entry<String, CharSequence> entry : connectedUsers.entrySet())
+		for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet())
 		{
 			try {
 				String[] userValue = entry.getValue().toString().split(",");
@@ -357,13 +530,35 @@ public class ServerImpl implements ServerProtocol {
 	//Method that will notify all users when someone leaves/enters the house
 	//State = "entered" or "left" depending on what the user did
 	private void notifyUsers(CharSequence userName, CharSequence state){
-		for (Entry<String, CharSequence> entry : connectedUsers.entrySet())
+		for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet())
 		{
 			try {
 				String[] userValue = entry.getValue().toString().split(",");
 				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
 				UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-				System.out.println(proxy.notifyUsers(userName, state));
+				proxy.notifyUsers(userName, state);
+				client.close();
+			} catch (NumberFormatException e) {
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		
+		for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet())
+		{
+			try {
+				String[] userValue = entry.getValue().toString().split(",");
+				Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+				FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+				if(state == " entered "){
+					proxy.enterHouse(userName);
+				}else{
+					proxy.leaveHouse(userName);
+				}
 				client.close();
 			} catch (NumberFormatException e) {
 				e.printStackTrace();
@@ -382,24 +577,13 @@ public class ServerImpl implements ServerProtocol {
 		return null;
 	}
 
-	public void removeClient(String userName) {
-		// Heartbeat manager has indicated that user isnt alive anymore
-		System.out.println("removing " + userName.toString());
-		String type = userName.toString().split("[0-9]")[0];
-		switch (type) {
-			case "Light":
-				connectedLights.remove(userName.toString());
-				break;
-			case "TS":
-				connectedTS.remove(userName.toString());
-				break;
-			case "Fridge":
-				connectedFridges.remove(userName.toString());
-				break;
-			case "User":
-				connectedUsers.remove(userName.toString());
-				userlocation.remove(userName.toString());
-				break;
+	@Override
+	public ReplicationData getReplication() throws AvroRemoteException {
+		ArrayList<TemperatureAggregate> temp = new ArrayList<TemperatureAggregate>();
+		for(TemperatureMeasurementRecord x : this.temperatures){
+			temp.add(x.getAggregate());
 		}
+		System.out.println(temp.size());
+		return new ReplicationData(this.connectedUsers, this.connectedLights, this.connectedFridges, this.connectedTS, temp, this.userlocation);
 	}
 }

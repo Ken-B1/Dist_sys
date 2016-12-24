@@ -24,11 +24,16 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 import sourcefiles.FridgeProtocol;
 import sourcefiles.LightProtocol;
 import sourcefiles.ServerProtocol;
+import sourcefiles.TemperatureAggregate;
+import sourcefiles.TemperatureRecord;
 import sourcefiles.UserProtocol;
+import sourcefiles.ReplicationData;
 import utility.Heartbeat;
 import utility.NetworkDiscoveryClient;
+import utility.ReplicationGenerator;
+import utility.TemperatureMeasurementRecord;
 
-public class UserImpl implements UserProtocol {
+public class UserImpl implements UserProtocol{
 	private String userName;
 	private int portNumber; 
 	private InetSocketAddress server;
@@ -44,6 +49,8 @@ public class UserImpl implements UserProtocol {
 	        connectToServer();
 	    }
 	};
+	
+	private ReplicationData repdata;
 	
 	public UserImpl(){
 		userName = "";
@@ -412,6 +419,13 @@ public class UserImpl implements UserProtocol {
 	@Override
 	public Void notifyUsers(CharSequence userName, CharSequence state) throws AvroRemoteException {
 		System.out.println(userName.toString() + state + "the house.");
+		System.out.println(state);
+		System.out.println(state.toString().contentEquals(" entered "));
+		if(state.toString().contentEquals(" entered ")){
+			this.enterHouse(userName);
+		}else{
+			this.leaveHouse(userName);
+		}
 		return null;
 	}
 
@@ -422,7 +436,6 @@ public class UserImpl implements UserProtocol {
 			try{
 				NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
 				server = FindServer.findServer();
-				
 				//Server has been found, so enter it
 				ServerSocket s = new ServerSocket(0);
 				portNumber = s.getLocalPort();
@@ -432,6 +445,9 @@ public class UserImpl implements UserProtocol {
 				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
 				userName = proxy.enter("user",InetAddress.getLocalHost().getHostAddress() + "," + portNumber).toString();
 				System.out.println(userName);
+				
+				//Make sure the replicationdata is up to date
+				repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
 				client.close();
 				
 				
@@ -441,6 +457,7 @@ public class UserImpl implements UserProtocol {
 				heartbeatThread = new Thread(heartbeat);
 				heartbeatThread.setUncaughtExceptionHandler(h);
 				heartbeatThread.start();
+				
 			} catch(IOException e){
 				System.out.println("Searching for server.");
 			}
@@ -453,6 +470,111 @@ public class UserImpl implements UserProtocol {
 			}
 		}
 	}
+
+	@Override
+	public Void enter(CharSequence userName, CharSequence ip) throws AvroRemoteException {
+		switch (userName.toString().split("[0-9]")[0]) {
+		case "Light":
+			repdata.getConnectedLights().put(userName.toString(), ip);
+			break;
+		case "TS":
+			repdata.getConnectedTS().put(userName.toString(), ip);
+			break;
+		case "Fridge":
+			repdata.getConnectedFridges().put(userName.toString(), ip);
+			break;
+		case "User":
+			repdata.getConnectedUsers().put(userName.toString(), ip);
+			enterHouse(userName);
+			break;
+		}
+		return null;
+	}
+
+	@Override
+	public Void leave(CharSequence userName) throws AvroRemoteException {
+		switch (userName.toString().split("[0-9]")[0]) {
+		case "Light":
+			repdata.getConnectedLights().remove(userName.toString());
+			break;
+		case "TS":
+			repdata.getConnectedTS().remove(userName.toString());
+			break;
+		case "Fridge":
+			repdata.getConnectedFridges().remove(userName.toString());
+			break;
+		case "User":
+			repdata.getConnectedUsers().remove(userName.toString());
+			repdata.getUserlocation().remove(userName.toString());
+			break;
+		}
+		return null;
+	}
+
+	@Override
+	public Void enterHouse(CharSequence userName) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		System.out.println(userName);
+		System.out.println(userName.toString());
+		System.out.println(repdata.userlocation.containsKey(userName));
+		System.out.println(repdata.userlocation.containsKey(userName.toString()));
+
+		repdata.getUserlocation().put(userName.toString(), false);
+		return null;
+	}
+
+	@Override
+	public Void leaveHouse(CharSequence userName) throws AvroRemoteException {
+		// TODO Auto-generated method stub
+		repdata.getUserlocation().put(userName.toString(), true);
+		return null;
+	}
+
+	@Override
+	public Void updateTemperature(TemperatureAggregate temperature) throws AvroRemoteException {
+		int index = 0;
+		String toCompare = temperature.getRecord().getTime().toString();
+		for(TemperatureAggregate x : repdata.getTemperatures()){
+			if(toCompare.contentEquals(x.getRecord().getTime().toString())){
+				break;
+			}
+			index++;
+		}
+		if(index == repdata.getTemperatures().size()){
+			//temperatureaggregate doestn exist yet
+			repdata.getTemperatures().add(temperature);
+		}else{
+			repdata.getTemperatures().set(index, temperature);
+		}
+		return null; 
+	}
 	
+	public void printAggregate(){
+		System.out.println("Users:");
+		for (Entry<CharSequence, CharSequence> entry : repdata.connectedUsers.entrySet())
+		{
+			System.out.println("    " + entry.getKey() + ": " + entry.getValue() +", Location: " +  (repdata.userlocation.get(entry.getKey()) ? "Outside" : "Inside"));
+		}
+		System.out.println("Lights:");		
+		for (Entry<CharSequence, CharSequence> entry : repdata.connectedLights.entrySet())
+		{
+			System.out.println("    " + entry.getKey());
+		}
+		System.out.println("Fridges:");		
+		for (Entry<CharSequence, CharSequence> entry : repdata.connectedFridges.entrySet())
+		{
+			System.out.println("    " + entry.getKey());
+		}
+		System.out.println("Ts:");		
+		for (Entry<CharSequence, CharSequence> entry : repdata.connectedTS.entrySet())
+		{
+			System.out.println("    " + entry.getKey());
+		}
+		System.out.println("temperatures:");		
+		for(TemperatureAggregate x : repdata.temperatures){
+			System.out.println("    " + x.counter + ", (" + x.record.time.toString() + ":" + x.record.temperature + ")");
+		}
+		System.out.println("end________________________________________");
+	}
 	
 }

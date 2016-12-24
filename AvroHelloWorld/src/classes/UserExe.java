@@ -54,6 +54,9 @@ public class UserExe {
 			case "i":
 				user.leaveHouse();
 				break;
+			case "x":
+				user.printAggregate();
+				break;
 			}
 		} while(!selectedType.equalsIgnoreCase("j") && !selectedType.equalsIgnoreCase("exit"));
 		keyboard.close();

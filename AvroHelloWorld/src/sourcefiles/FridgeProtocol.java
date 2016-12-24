@@ -8,10 +8,15 @@ package sourcefiles;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface FridgeProtocol {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"FridgeProtocol\",\"namespace\":\"sourcefiles\",\"types\":[],\"messages\":{\"getInventory\":{\"request\":[],\"response\":{\"type\":\"array\",\"items\":\"string\"}},\"addItem\":{\"request\":[{\"name\":\"item\",\"type\":\"string\"}],\"response\":\"string\"},\"removeItem\":{\"request\":[{\"name\":\"item\",\"type\":\"string\"}],\"response\":\"string\"}}}");
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"FridgeProtocol\",\"namespace\":\"sourcefiles\",\"types\":[{\"type\":\"record\",\"name\":\"TemperatureRecord\",\"fields\":[{\"name\":\"time\",\"type\":\"string\"},{\"name\":\"temperature\",\"type\":\"double\"}]},{\"type\":\"record\",\"name\":\"TemperatureAggregate\",\"fields\":[{\"name\":\"counter\",\"type\":\"int\"},{\"name\":\"record\",\"type\":\"TemperatureRecord\"}]}],\"messages\":{\"getInventory\":{\"request\":[],\"response\":{\"type\":\"array\",\"items\":\"string\"}},\"addItem\":{\"request\":[{\"name\":\"item\",\"type\":\"string\"}],\"response\":\"string\"},\"removeItem\":{\"request\":[{\"name\":\"item\",\"type\":\"string\"}],\"response\":\"string\"},\"enter\":{\"request\":[{\"name\":\"userName\",\"type\":\"string\"},{\"name\":\"ip\",\"type\":\"string\"}],\"response\":\"null\"},\"leave\":{\"request\":[{\"name\":\"userName\",\"type\":\"string\"}],\"response\":\"null\"},\"enterHouse\":{\"request\":[{\"name\":\"userName\",\"type\":\"string\"}],\"response\":\"null\"},\"leaveHouse\":{\"request\":[{\"name\":\"userName\",\"type\":\"string\"}],\"response\":\"null\"},\"updateTemperature\":{\"request\":[{\"name\":\"TemperatureAggregate\",\"type\":\"TemperatureAggregate\"}],\"response\":\"null\"}}}");
   java.util.List<java.lang.CharSequence> getInventory() throws org.apache.avro.AvroRemoteException;
   java.lang.CharSequence addItem(java.lang.CharSequence item) throws org.apache.avro.AvroRemoteException;
   java.lang.CharSequence removeItem(java.lang.CharSequence item) throws org.apache.avro.AvroRemoteException;
+  java.lang.Void enter(java.lang.CharSequence userName, java.lang.CharSequence ip) throws org.apache.avro.AvroRemoteException;
+  java.lang.Void leave(java.lang.CharSequence userName) throws org.apache.avro.AvroRemoteException;
+  java.lang.Void enterHouse(java.lang.CharSequence userName) throws org.apache.avro.AvroRemoteException;
+  java.lang.Void leaveHouse(java.lang.CharSequence userName) throws org.apache.avro.AvroRemoteException;
+  java.lang.Void updateTemperature(sourcefiles.TemperatureAggregate TemperatureAggregate) throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
   public interface Callback extends FridgeProtocol {
@@ -19,5 +24,10 @@ public interface FridgeProtocol {
     void getInventory(org.apache.avro.ipc.Callback<java.util.List<java.lang.CharSequence>> callback) throws java.io.IOException;
     void addItem(java.lang.CharSequence item, org.apache.avro.ipc.Callback<java.lang.CharSequence> callback) throws java.io.IOException;
     void removeItem(java.lang.CharSequence item, org.apache.avro.ipc.Callback<java.lang.CharSequence> callback) throws java.io.IOException;
+    void enter(java.lang.CharSequence userName, java.lang.CharSequence ip, org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
+    void leave(java.lang.CharSequence userName, org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
+    void enterHouse(java.lang.CharSequence userName, org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
+    void leaveHouse(java.lang.CharSequence userName, org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
+    void updateTemperature(sourcefiles.TemperatureAggregate TemperatureAggregate, org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
   }
 }

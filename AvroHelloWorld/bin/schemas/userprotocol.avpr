@@ -1,5 +1,16 @@
 {"namespace": "sourcefiles",
  "protocol": "UserProtocol",
+ 
+  "types": [
+    {"name": "TemperatureRecord", "type": "record", "fields": [
+     {"name": "time", "type": "string"},
+	 {"name": "temperature", "type": "double"}]
+    },
+    {"name": "TemperatureAggregate", "type": "record", "fields": [
+     {"name": "counter", "type": "int"}, 
+     {"name": "record", "type": "TemperatureRecord"}]
+    }],
+    
  "messages": {
  	"notifyOfEmptyFridge": {
     	"request": [{"name": "fridgeName", "type": "string"}],
@@ -8,6 +19,26 @@
      "notifyUsers": {
     	"request": [{"name": "userName", "type": "string"}, {"name": "state", "type": "string"}],
     	"response": "null"
+    },
+     "enter": {
+     "request": [{"name": "userName", "type": "string" },{"name": "ip", "type":"string"}],
+     "response": "null"
+    },
+     "leave": {
+     "request": [{"name": "userName", "type": "string" }],
+     "response": "null"
+    },
+     "enterHouse": {
+     "request": [{"name": "userName", "type": "string" }],
+     "response": "null"
+    },
+     "leaveHouse": {
+     "request": [{"name": "userName", "type": "string" }],
+     "response": "null"
+    },
+     "updateTemperature": {
+     "request": [{"name": "TemperatureAggregate", "type": "TemperatureAggregate"}], 			 
+     "response": "null"
     }
   }
 }

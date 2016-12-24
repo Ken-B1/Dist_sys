@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Vector;
 
+import org.apache.avro.AvroRemoteException;
+
 import static java.time.temporal.ChronoUnit.SECONDS;
 
 import classes.ServerExe;
@@ -43,7 +45,12 @@ public class ServerHeartbeatMaintainer implements Runnable{
 				long delay = SECONDS.between(lastTime, now);
 				if(delay > 30){
 					//Havent heard from the device in over 30 seconds, so notify server
-					server.removeClient(entry.getKey());
+					try {
+						server.leave(entry.getKey());
+					} catch (AvroRemoteException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					removeValues.add(entry.getKey());
 				}
 			}

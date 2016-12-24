@@ -5,8 +5,20 @@
     {"name": "TemperatureRecord", "type": "record", "fields": [
      {"name": "time", "type": "string"},
 	 {"name": "temperature", "type": "double"}]
-  }],
- 
+    },
+    {"name": "TemperatureAggregate", "type": "record", "fields": [
+     {"name": "counter", "type": "int"}, 
+     {"name": "record", "type": "sourcefiles.TemperatureRecord"}]
+    },
+ 	{"name": "ReplicationData", "type": "record", "fields": [
+ 	 {"name": "connectedUsers", "type": {"type": "map", "values": "string"}},
+ 	 {"name": "connectedLights", "type": {"type": "map", "values": "string"}},
+ 	 {"name": "connectedFridges", "type": {"type": "map", "values": "string"}},
+ 	 {"name": "connectedTS", "type": {"type": "map", "values": "string"}},
+ 	 {"name": "temperatures", "type": {"type": "array", "items": "TemperatureAggregate"}},
+ 	 {"name": "userlocation", "type": {"type": "map", "values": "boolean"}}]
+ 	}],
+ 	
  
  
  "messages": {
@@ -74,6 +86,10 @@
     "showHeartbeat":{
      "request": [{"name": "userName", "type": "string"}],
      "response": "null"
+    },
+    "getReplication":{
+     "request": [],
+     "response": "ReplicationData"
     }
   }
 }

@@ -1,5 +1,17 @@
 {"namespace": "sourcefiles",
  "protocol": "FridgeProtocol",
+ 
+   "types": [
+    {"name": "TemperatureRecord", "type": "record", "fields": [
+     {"name": "time", "type": "string"},
+	 {"name": "temperature", "type": "double"}]
+    },
+    {"name": "TemperatureAggregate", "type": "record", "fields": [
+     {"name": "counter", "type": "int"}, 
+     {"name": "record", "type": "TemperatureRecord"}]
+    }],
+    
+    
  "messages": {
     "getInventory": {
       "request": [],
@@ -12,6 +24,26 @@
     "removeItem": {
       "request": [{"name":"item","type":"string"}],
       "response": "string"
+    },     
+    "enter": {
+     "request": [{"name": "userName", "type": "string" },{"name": "ip", "type":"string"}],
+     "response": "null"
+    },
+    "leave": {
+     "request": [{"name": "userName", "type": "string" }],
+     "response": "null"
+    },
+    "enterHouse": {
+     "request": [{"name": "userName", "type": "string" }],
+     "response": "null"
+    },
+    "leaveHouse": {
+     "request": [{"name": "userName", "type": "string" }],
+     "response": "null"
+    },
+    "updateTemperature": {
+     "request": [{"name": "TemperatureAggregate", "type": "TemperatureAggregate"}], 			 
+     "response": "null"
     }
   }
 }
