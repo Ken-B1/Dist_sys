@@ -36,13 +36,17 @@ import utility.TemperatureMeasurementRecord;
 
 public class ServerImpl implements ServerProtocol {
 	private Map<CharSequence, CharSequence> connectedUsers = new HashMap<CharSequence, CharSequence>();
+	int userCount = 0; //Variable to give clients unique names
 	private Map<CharSequence, CharSequence> connectedLights = new HashMap<CharSequence, CharSequence>();
+	int lightCount = 0; //Variable to give clients unique names
 	private Map<CharSequence, CharSequence> connectedFridges = new HashMap<CharSequence, CharSequence>();
+	int fridgeCount = 0; //Variable to give clients unique names
 	private Map<CharSequence, CharSequence> connectedTS = new HashMap<CharSequence, CharSequence>();
+	int tsCount = 0; //Variable to give clients unique names
 	private ArrayList<TemperatureMeasurementRecord> temperatures = new ArrayList<TemperatureMeasurementRecord>();
 	private Map<CharSequence, Boolean> userlocation = new HashMap<CharSequence, Boolean>();	//Maps a user to a location (1 = outside, 0 = inside)
 	ServerHeartbeatMaintainer heartbeat = new ServerHeartbeatMaintainer(this);
-	Thread xxx = new Thread(heartbeat);
+	Thread heartbeatThread = new Thread(heartbeat);
 	private static boolean stayOpen=true;
 	SaslSocketServer server;
 	
@@ -82,6 +86,8 @@ public class ServerImpl implements ServerProtocol {
 			server1.start();
 			server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this),new InetSocketAddress(InetAddress.getLocalHost(), 6789));
 			server.start();
+			//Update heartbeat to have beats for each user
+			
 		} catch (IOException e) {
 			System.err.println("[error]: Failed to start server");
 			e.printStackTrace(System.err);
@@ -96,8 +102,8 @@ public class ServerImpl implements ServerProtocol {
 	
 	@Override
 	public CharSequence enter(CharSequence type, CharSequence ip) throws AvroRemoteException {
-			if(xxx.getState() == Thread.State.NEW){
-				xxx.start();
+			if(heartbeatThread.getState() == Thread.State.NEW){
+				heartbeatThread.start();
 			}
 			System.out.println("Client coming in");
 			String name = "";
@@ -106,7 +112,8 @@ public class ServerImpl implements ServerProtocol {
 				if(connectedLights.containsValue(ip)){
 					break;
 				}
-				name = "Light" + connectedLights.size();
+				name = "Light" + lightCount;
+				lightCount++;
 				connectedLights.put(name, ip);
 				heartbeat.updateClient(name);
 				break;
@@ -114,7 +121,8 @@ public class ServerImpl implements ServerProtocol {
 				if(connectedTS.containsValue(ip)){
 					break;
 				}
-				name = "TS" + connectedTS.size();
+				name = "TS" + tsCount;
+				tsCount++;
 				connectedTS.put(name, ip);
 				heartbeat.updateClient(name);
 				break;
@@ -122,7 +130,8 @@ public class ServerImpl implements ServerProtocol {
 				if(connectedFridges.containsValue(ip)){
 					break;
 				}
-				name = "Fridge" + connectedFridges.size();
+				name = "Fridge" + fridgeCount;
+				fridgeCount++;
 				connectedFridges.put(name, ip);
 				heartbeat.updateClient(name);
 				break;
@@ -130,7 +139,8 @@ public class ServerImpl implements ServerProtocol {
 				if(connectedUsers.containsValue(ip)){
 					break;
 				}
-				name = "User" + connectedUsers.size();
+				name = "User" + userCount;
+				userCount++;
 				connectedUsers.put(name, ip);
 				userlocation.put(name,  false);
 				heartbeat.updateClient(name);
