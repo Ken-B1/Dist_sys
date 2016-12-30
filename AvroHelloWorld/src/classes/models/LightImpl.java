@@ -77,4 +77,9 @@ public class LightImpl implements LightProtocol{
 	public void showName(){
 		System.out.println(name);
 	}
+	@Override
+	public Void setState(boolean state) throws AvroRemoteException {
+		status = state;
+		return null;
+	}
 }

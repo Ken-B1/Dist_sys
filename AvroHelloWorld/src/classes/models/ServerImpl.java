@@ -36,19 +36,22 @@ import utility.TemperatureMeasurementRecord;
 
 public class ServerImpl implements ServerProtocol {
 	private Map<CharSequence, CharSequence> connectedUsers = new HashMap<CharSequence, CharSequence>();
-	int userCount = 0; //Variable to give clients unique names
+	private int userCount = 0; //Variable to give clients unique names
 	private Map<CharSequence, CharSequence> connectedLights = new HashMap<CharSequence, CharSequence>();
-	int lightCount = 0; //Variable to give clients unique names
+	private int lightCount = 0; //Variable to give clients unique names
 	private Map<CharSequence, CharSequence> connectedFridges = new HashMap<CharSequence, CharSequence>();
-	int fridgeCount = 0; //Variable to give clients unique names
+	private int fridgeCount = 0; //Variable to give clients unique names
 	private Map<CharSequence, CharSequence> connectedTS = new HashMap<CharSequence, CharSequence>();
-	int tsCount = 0; //Variable to give clients unique names
+	private int tsCount = 0; //Variable to give clients unique names
 	private ArrayList<TemperatureMeasurementRecord> temperatures = new ArrayList<TemperatureMeasurementRecord>();
 	private Map<CharSequence, Boolean> userlocation = new HashMap<CharSequence, Boolean>();	//Maps a user to a location (1 = outside, 0 = inside)
 	ServerHeartbeatMaintainer heartbeat = new ServerHeartbeatMaintainer(this);
 	Thread heartbeatThread = new Thread(heartbeat);
 	private static boolean stayOpen=true;
 	SaslSocketServer server;
+	
+	//Variable to save lightstates when everyone leaves the house
+	private Map<CharSequence, Boolean> lightsave = new HashMap<CharSequence, Boolean>();
 	
 	public ServerImpl(){
 		try {
@@ -522,6 +525,32 @@ public class ServerImpl implements ServerProtocol {
 		if(!connectedUsers.containsKey(userName.toString())){
 			throw new AvroRuntimeException("User hasnt joined the system yet");
 		}
+		boolean checkIfFirst = true;
+		for(Entry<CharSequence, Boolean> entry : userlocation.entrySet()){
+			if(!entry.getValue()){
+				checkIfFirst = false;
+			}
+		}
+		if(checkIfFirst){
+			//First user to enter the house so lights should be restored
+			for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()){
+				try {
+					String[] lightValue = entry.getValue().toString().split(",");
+					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
+					LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
+					proxy.setState(lightsave.get(entry.getKey()));
+					client.close();
+				} catch (AvroRemoteException e) {
+					System.err.println("Error joining");
+					e.printStackTrace(System.err);
+					System.exit(1);
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		userlocation.put(userName.toString(), false);
 		notifyUsers(userName, " entered ");
 		return true;
@@ -533,6 +562,35 @@ public class ServerImpl implements ServerProtocol {
 			throw new AvroRuntimeException("User hasnt joined the system yet");
 		}
 		userlocation.put(userName.toString(), true);
+		boolean checkIfLast = true;
+		for(Entry<CharSequence, Boolean> entry : userlocation.entrySet()){
+			if(!entry.getValue()){
+				checkIfLast = false;
+			}
+		}
+		if(checkIfLast){
+			//Save status of lights and turn them all off
+			for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()){
+				try {
+					String[] lightValue = entry.getValue().toString().split(",");
+					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
+					LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
+					boolean status = proxy.getState();
+					proxy.setState(false);
+					lightsave.put(entry.getKey(), status);
+					client.close();
+					
+				} catch (AvroRemoteException e) {
+					System.err.println("Error joining");
+					e.printStackTrace(System.err);
+					System.exit(1);
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		notifyUsers(userName, " left ");
 		return true;
 	}

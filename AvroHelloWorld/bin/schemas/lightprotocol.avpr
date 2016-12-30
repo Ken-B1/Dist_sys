@@ -8,6 +8,10 @@
     "getState": {
       "request": [],
       "response": "boolean"
+    },
+    "setState": {
+      "request": [{"name": "state", "type": "boolean"}],
+      "response": "null"
     }
   }
 }
