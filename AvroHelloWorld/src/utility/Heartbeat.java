@@ -36,7 +36,7 @@ public class Heartbeat implements Runnable{
 	@Override
 	public void run(){
 		while(true){
-			if(this.server.toString() != "/0.0.0.0:0" && userName != ""){		
+			if(this.server.toString() != "/0.0.0.0:0" && userName != ""){
 				try{
 					Transceiver client = new SaslSocketTransceiver(server);
 					ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
@@ -58,6 +58,7 @@ public class Heartbeat implements Runnable{
 	
 	//Method to set the server
 	public void setServer(InetSocketAddress server){
+		System.out.println("setting server to: " + server);
 		this.server = server;
 	}
 	

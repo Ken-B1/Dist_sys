@@ -21,8 +21,8 @@ public class ReplicationGenerator {
 		Map<CharSequence, CharSequence> connectedFridges = new HashMap<CharSequence, CharSequence>();
 		Map<CharSequence, CharSequence> connectedTS = new HashMap<CharSequence, CharSequence>();
 		Map<CharSequence, Boolean> userlocation = new HashMap<CharSequence, Boolean>();	//Maps a user to a location (1 = outside, 0 = inside)
-		
-		
+
+
 		for (Entry<CharSequence, CharSequence> entry : original.getConnectedUsers().entrySet())
 		{
 			connectedUsers.put(entry.getKey().toString(), entry.getValue().toString());

@@ -39,6 +39,42 @@
      "updateTemperature": {
      "request": [{"name": "TemperatureAggregate", "type": "TemperatureAggregate"}], 			 
      "response": "null"
+    },
+    "addNeighbour": {
+        "request": [{"name":"neighbourId","type":"string"},{"name":"neighbourIp","type":"string"},{"name":"neighbourType","type":"string"},{"name":"isNextNeighbour","type":"boolean"}],
+        "response": "string"
+    },
+    "sendElectionMessage": {
+        "request": [{"name":"previousId","type":"string"}],
+        "response": "null"
+    },
+    "sendElectedMessage": {
+        "request": [{"name":"electedId","type":"string"},{"name":"electedIp","type":"string"}],
+        "response": "null"
+    },
+    "getNeighbours": {
+        "request": [],
+        "response": {"type": "array", "items": "string"}
+    },
+    "clearNeighbours": {
+        "request": [],
+        "response": "null"
+    },
+    "addNeighbour": {
+        "request": [{"name":"neighbourId","type":"string"},{"name":"neighbourIp","type":"string"},{"name":"neighbourType","type":"string"},{"name":"isNextNeighbour","type":"boolean"}],
+        "response": "string"
+    },
+    "updateRepDataNeighbours": {
+        "request": [{"name":"firstNeighbour","type":{"type":"array","items":"string"}},{"name":"lastNeighbour","type":{"type":"array","items":"string"}}],
+        "response": "string"
+    },
+    "updateRepDataIdCounter": {
+        "request": [{"name":"idCounter","type":"int"}],
+        "response": "string"
+    },
+    "grantFridgeAccess": {
+        "request": [{"name":"fridgeIp","type":"string"},{"name":"fridgeName","type":"string"}],
+        "response": "string"
     }
   }
 }

@@ -1,7 +1,10 @@
 {"namespace": "sourcefiles",
  "protocol": "TSProtocol",
  "messages": {
-    
+    "setNewServer": {
+        "request": [{"name":"serverIp","type":"string"}],
+        "response": "string"
+    }
   }
 }
   
