@@ -38,6 +38,8 @@ public class ServerImpl implements ServerProtocol {
     private List<String> firstNeighbour;
     private List<String> lastNeighbour;
     Map<String, LinkedList<String>> fridgeAccessQueue;
+  //Variable to save lightstates when everyone leaves the house
+  	private Map<CharSequence, Boolean> lightsave = new HashMap<CharSequence, Boolean>();
 
     public ServerImpl() {
         firstNeighbour = new ArrayList<String>();
@@ -135,7 +137,7 @@ public class ServerImpl implements ServerProtocol {
                 }
                 regulateNeighbours(name, ip.toString(), type.toString());
                 connectedFridges.put(name, ip);
-                fridgeAccessQueue.put(name, new LinkedList<>());
+                fridgeAccessQueue.put(name, new LinkedList<String>());
                 heartbeat.updateClient(name);
                 break;
             case "user":
@@ -143,6 +145,7 @@ public class ServerImpl implements ServerProtocol {
                     break;
                 }
                 regulateNeighbours(name, ip.toString(), type.toString());
+                userlocation.put(name, false);
                 connectedUsers.put(name, ip);
                 heartbeat.updateClient(name);
                 break;
@@ -415,22 +418,22 @@ public class ServerImpl implements ServerProtocol {
         List<CharSequence> clients = new ArrayList<CharSequence>();
 
         for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet()) {
-            String name = entry.getKey() + ", Location: " + (userlocation.get(entry.getKey()) ? "Outside" : "Inside");
+            String name = "User" + entry.getKey() + ", Location: " + (userlocation.get(entry.getKey()) ? "Outside" : "Inside");
             clients.add(name);
         }
 
         for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()) {
-            String name = (String) entry.getKey();
+            String name = "Light" + (String) entry.getKey();
             clients.add(name);
         }
 
         for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet()) {
-            String name = (String) entry.getKey();
+            String name = "Fridge" + (String) entry.getKey();
             clients.add(name);
         }
 
         for (Entry<CharSequence, CharSequence> entry : connectedTS.entrySet()) {
-            String name = (String) entry.getKey();
+            String name = "Ts" + (String) entry.getKey();
             clients.add(name);
         }
 
@@ -654,6 +657,32 @@ public class ServerImpl implements ServerProtocol {
         if (!connectedUsers.containsKey(userName.toString())) {
             throw new AvroRuntimeException("User hasnt joined the system yet");
         }
+        boolean checkIfFirst = true;
+		for(Entry<CharSequence, Boolean> entry : userlocation.entrySet()){
+			if(!entry.getValue()){
+				checkIfFirst = false;
+			}
+		}
+		if(checkIfFirst){
+			//First user to enter the house so lights should be restored
+			for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()){
+				try {
+					String[] lightValue = entry.getValue().toString().split(",");
+					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
+					LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
+					proxy.setState(lightsave.get(entry.getKey()));
+					client.close();
+				} catch (AvroRemoteException e) {
+					System.err.println("Error joining");
+					e.printStackTrace(System.err);
+					System.exit(1);
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
         userlocation.put(userName.toString(), false);
         notifyUsers(userName, " entered ");
         return true;
@@ -665,6 +694,36 @@ public class ServerImpl implements ServerProtocol {
             throw new AvroRuntimeException("User hasnt joined the system yet");
         }
         userlocation.put(userName.toString(), true);
+        boolean checkIfLast = true;
+		for(Entry<CharSequence, Boolean> entry : userlocation.entrySet()){
+			if(!entry.getValue()){
+				checkIfLast = false;
+			}
+		}
+		if(checkIfLast){
+			System.out.println("test");
+			//Save status of lights and turn them all off
+			for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()){
+				try {
+					String[] lightValue = entry.getValue().toString().split(",");
+					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
+					LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
+					boolean status = proxy.getState();
+					proxy.setState(false);
+					lightsave.put(entry.getKey(), status);
+					client.close();
+					
+				} catch (AvroRemoteException e) {
+					System.err.println("Error joining");
+					e.printStackTrace(System.err);
+					System.exit(1);
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
         notifyUsers(userName, " left ");
         return true;
     }
@@ -753,7 +812,7 @@ public class ServerImpl implements ServerProtocol {
     }
 
     @Override
-    public Void closeFridge(CharSequence fridgeName, CharSequence clientIp) throws AvroRemoteException {
+    public Void closeFridge(final CharSequence fridgeName, CharSequence clientIp) throws AvroRemoteException {
         if (fridgeAccessQueue.get(fridgeName.toString()).peekFirst().equalsIgnoreCase(clientIp.toString())) {
             fridgeAccessQueue.get(fridgeName.toString()).remove();
         }

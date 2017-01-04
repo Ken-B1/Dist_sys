@@ -8,10 +8,11 @@ package sourcefiles;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface LightProtocol {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"LightProtocol\",\"namespace\":\"sourcefiles\",\"types\":[],\"messages\":{\"changeState\":{\"request\":[],\"response\":\"boolean\"},\"getState\":{\"request\":[],\"response\":\"boolean\"},\"setNewServer\":{\"request\":[{\"name\":\"serverIp\",\"type\":\"string\"}],\"response\":\"string\"}}}");
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"LightProtocol\",\"namespace\":\"sourcefiles\",\"types\":[],\"messages\":{\"changeState\":{\"request\":[],\"response\":\"boolean\"},\"getState\":{\"request\":[],\"response\":\"boolean\"},\"setNewServer\":{\"request\":[{\"name\":\"serverIp\",\"type\":\"string\"}],\"response\":\"string\"},\"setState\":{\"request\":[{\"name\":\"state\",\"type\":\"boolean\"}],\"response\":\"null\"}}}");
   boolean changeState() throws org.apache.avro.AvroRemoteException;
   boolean getState() throws org.apache.avro.AvroRemoteException;
   java.lang.CharSequence setNewServer(java.lang.CharSequence serverIp) throws org.apache.avro.AvroRemoteException;
+  java.lang.Void setState(boolean state) throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
   public interface Callback extends LightProtocol {
@@ -19,5 +20,6 @@ public interface LightProtocol {
     void changeState(org.apache.avro.ipc.Callback<java.lang.Boolean> callback) throws java.io.IOException;
     void getState(org.apache.avro.ipc.Callback<java.lang.Boolean> callback) throws java.io.IOException;
     void setNewServer(java.lang.CharSequence serverIp, org.apache.avro.ipc.Callback<java.lang.CharSequence> callback) throws java.io.IOException;
+    void setState(boolean state, org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
   }
 }

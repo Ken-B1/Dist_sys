@@ -78,6 +78,11 @@ public class LightImpl implements LightProtocol {
         }
         return status;
     }
+	@Override
+	public Void setState(boolean state) throws AvroRemoteException {
+		status = state;
+		return null;
+	}
 
     @Override
     public boolean getState() throws AvroRemoteException {

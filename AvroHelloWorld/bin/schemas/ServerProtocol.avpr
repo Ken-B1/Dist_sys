@@ -16,7 +16,10 @@
  	 {"name": "connectedFridges", "type": {"type": "map", "values": "string"}},
  	 {"name": "connectedTS", "type": {"type": "map", "values": "string"}},
  	 {"name": "temperatures", "type": {"type": "array", "items": "TemperatureAggregate"}},
- 	 {"name": "userlocation", "type": {"type": "map", "values": "boolean"}}]
+ 	 {"name": "userlocation", "type": {"type": "map", "values": "boolean"}},
+ 	 {"name": "firstNeighbour", "type": {"type": "array", "items": "string"}},
+ 	 {"name": "lastNeighbour", "type": {"type": "array", "items": "string"}},
+ 	 {"name": "idCounter", "type": "int"}]
  	}],
  	
  
@@ -90,6 +93,14 @@
     "getReplication":{
      "request": [],
      "response": "ReplicationData"
+    },
+    "requestFridgeAddress":{
+        "request": [{"name": "fridgeName", "type": "string"},{"name": "clientIp", "type": "string"}],
+        "response": "string"
+    },
+    "closeFridge":{
+        "request": [{"name": "fridgeName", "type": "string"},{"name": "clientIp", "type": "string"}],
+        "response": "null"
     }
   }
 }

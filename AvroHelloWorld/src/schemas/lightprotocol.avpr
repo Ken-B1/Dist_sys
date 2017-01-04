@@ -12,6 +12,10 @@
     "setNewServer": {
         "request": [{"name":"serverIp","type":"string"}],
         "response": "string"
+    },
+    "setState": {
+      "request": [{"name": "state", "type": "boolean"}],
+      "response": "null"
     }
   }
 }
