@@ -105,6 +105,12 @@ public class TempSensImpl implements TSProtocol {
 			heartbeatThread = new Thread(heartbeat);
 			heartbeatThread.setUncaughtExceptionHandler(h);
 			heartbeatThread.start();
+			Transceiver client = new SaslSocketTransceiver(serverAddress);
+			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+			CharSequence newUserName = proxy.enter("temperature sensor", ip + "," + portnumber);
+			id = newUserName.toString();
+			heartbeat.setuserName(newUserName.toString());
+			client.close();
 		} catch(IOException e){
 			//Server can't be found
 			serverFound = false;
@@ -149,11 +155,6 @@ public class TempSensImpl implements TSProtocol {
 				//Connect to server to send status update and join
 				Transceiver client = new SaslSocketTransceiver(serverAddress);
 				ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-				CharSequence newUserName = proxy.enter("temperature sensor", ip + "," + portnumber);
-				if(newUserName != ""){
-					id = newUserName.toString();
-					heartbeat.setuserName(newUserName.toString());
-				}
 				proxy.updateTemperature(id, record);
 				client.close();
 			} catch (Exception e){
@@ -178,20 +179,4 @@ public class TempSensImpl implements TSProtocol {
         return null;
     }
 
-	private void connectToServer() {
-		try {
-			NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-			serverAddress = FindServer.findServer();
-			serverFound = true;
-			heartbeat.setServer(serverAddress);
-			heartbeatThread = new Thread(heartbeat);
-			heartbeatThread.setUncaughtExceptionHandler(h);
-			heartbeatThread.start();
-		} catch (IOException e) {
-			//Server can't be found
-			serverFound = false;
-			heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
-
-		}
-	}
 }

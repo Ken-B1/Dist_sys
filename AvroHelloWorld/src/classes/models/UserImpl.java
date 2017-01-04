@@ -167,9 +167,10 @@ public class UserImpl implements UserProtocol {
             proxy.changeLightState(selectedType).toString();
             client.close();
             //Start the procedure of updating temperature and sending it to the server
+        } catch (AvroRuntimeException e){
+        	System.err.println("That light doesnt exist");
         } catch (AvroRemoteException e) {
             System.err.println("Error joining");
-            e.printStackTrace(System.err);
             System.exit(1);
         } catch (UnknownHostException e) {
             e.printStackTrace();

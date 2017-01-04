@@ -44,6 +44,7 @@ public class Heartbeat implements Runnable{
 					client.close();
 				} catch(IOException e){
 					//Something went wrong while trying to send heartbeats
+					System.out.println("xxxx");
 					throw new RuntimeException("Couldn't find server during heartbeat");
 				}
 			}

@@ -3,6 +3,7 @@ package classes.models;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.Map.Entry;
@@ -31,14 +32,14 @@ public class ServerImpl implements ServerProtocol {
     private ArrayList<TemperatureMeasurementRecord> temperatures = new ArrayList<TemperatureMeasurementRecord>();
     private Map<CharSequence, Boolean> userlocation = new HashMap<CharSequence, Boolean>();    //Maps a user to a location (1 = outside, 0 = inside)
     ServerHeartbeatMaintainer heartbeat = new ServerHeartbeatMaintainer(this);
-    Thread xxx = new Thread(heartbeat);
+    Thread heartbeatThread = new Thread(heartbeat);
     private static boolean stayOpen = true;
     SaslSocketServer server;
     private int idCounter;
     private List<String> firstNeighbour;
     private List<String> lastNeighbour;
     Map<String, LinkedList<String>> fridgeAccessQueue;
-  //Variable to save lightstates when everyone leaves the house
+    //Variable to save lightstates when everyone leaves the house
   	private Map<CharSequence, Boolean> lightsave = new HashMap<CharSequence, Boolean>();
 
     public ServerImpl() {
@@ -46,9 +47,12 @@ public class ServerImpl implements ServerProtocol {
         lastNeighbour = new ArrayList<String>();
         fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
         try {
+        	Socket s = new Socket("192.168.1.1", 80);
+        	InetAddress localadress =  s.getLocalAddress();
+        	s.close();
             Thread server1 = new Thread(new NetworkDiscoveryServer());
             server1.start();
-            server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this), new InetSocketAddress(InetAddress.getLocalHost(), 6789));
+            server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this), new InetSocketAddress(localadress, 6789));
             server.start();
         } catch (IOException e) {
             System.err.println("[error]: Failed to start server");
@@ -109,8 +113,8 @@ public class ServerImpl implements ServerProtocol {
 
     @Override
     public CharSequence enter(CharSequence type, CharSequence ip) throws AvroRemoteException {
-        if (xxx.getState() == Thread.State.NEW) {
-            xxx.start();
+        if (heartbeatThread.getState() == Thread.State.NEW) {
+        	heartbeatThread.start();
         }
         System.out.println("Client coming in");
         String name = idCounter + "";
@@ -493,6 +497,9 @@ public class ServerImpl implements ServerProtocol {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (NullPointerException e){
+        	//The requested light doesnt exist
+        	throw new AvroRemoteException(e);
         }
         if (status) {
             return lightName + " is now on";
