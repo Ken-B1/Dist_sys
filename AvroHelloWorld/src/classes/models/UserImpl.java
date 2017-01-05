@@ -167,8 +167,8 @@ public class UserImpl implements UserProtocol {
             proxy.changeLightState(selectedType).toString();
             client.close();
             //Start the procedure of updating temperature and sending it to the server
-        } catch (AvroRuntimeException e){
-        	System.err.println("That light doesnt exist");
+        } catch (AvroRuntimeException e) {
+            System.err.println("That light doesnt exist");
         } catch (AvroRemoteException e) {
             System.err.println("Error joining");
             System.exit(1);
@@ -229,7 +229,7 @@ public class UserImpl implements UserProtocol {
 
     public void openFridge() {
         //Method that will try to connect to a fridge
-         if (!serverFound) {
+        if (!serverFound) {
             connectToServer();
         }
         try {
@@ -584,7 +584,7 @@ public class UserImpl implements UserProtocol {
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
         System.out.println("received electionMessage");
-        if (nextNeighbour.size() > 0) {
+        //if (nextNeighbour.size() > 0) {
             int ownId = Integer.parseInt(id);
             int incId = Integer.parseInt(previousId.toString());
             if (incId > ownId) {
@@ -651,10 +651,10 @@ public class UserImpl implements UserProtocol {
                 }
                 setNewServer(ip + "," + portNumber);
             }
-        } else {
+       /* } else {
             System.out.println("I am the only client, I will be server");
             setNewServer(ip + "," + portNumber);
-        }
+        }*/
         return null;
     }
 
@@ -701,23 +701,31 @@ public class UserImpl implements UserProtocol {
     }
 
     private void startElection() {
-        inElection = true;
-        String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
-        try {
-            Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
-            switch (nextNeighbour.get(2)) {
-                case "fridge":
-                    FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                    fridgeProxy.sendElectionMessage(id);
-                    break;
-                case "user":
-                    UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                    userProxy.sendElectionMessage(id);
-                    break;
+        if (nextNeighbour.size() > 0) {
+            inElection = true;
+            String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
+            try {
+                Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
+                switch (nextNeighbour.get(2)) {
+                    case "fridge":
+                        FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+                        fridgeProxy.sendElectionMessage(id);
+                        break;
+                    case "user":
+                        UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+                        userProxy.sendElectionMessage(id);
+                        break;
+                }
+                client.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            client.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } else {
+            try {
+                setNewServer(ip+","+portNumber);
+            } catch (AvroRemoteException e) {
+                e.printStackTrace();
+            }
         }
     }
 
