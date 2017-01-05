@@ -60,33 +60,7 @@ public class TempSensImpl implements TSProtocol {
 		temperatures = new Vector<TemperatureRecord>();
 		heartbeat=new Heartbeat();
 		//Try to connect to server 
-		try {
-			searchServer();
-			//Use serversocket to find open socket
-			ServerSocket s = new ServerSocket(0);
-			portnumber = s.getLocalPort();
-			s.close();
-			ip = InetAddress.getLocalHost().getHostAddress();
-			if(serverFound){
-				client = new SaslSocketTransceiver(serverAddress);
-				proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-				String newuserName = proxy.enter("temperature sensor", ip + "," + portnumber).toString();
-				if(newuserName != ""){
-					id = newuserName;
-					heartbeat.setuserName(newuserName);
-				}
-				client.close();
-			}
-			
-			System.out.println(id);
-			//Start the procedure of updating temperature and sending it to the server
-		} catch(AvroRemoteException e){
-			System.err.println("Something went wrong while trying to join the server");
-			e.printStackTrace(System.err);
-			System.exit(1);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		searchServer();
 		
 		LocalTime currenttime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 		TemperatureRecord newtemp = new TemperatureRecord(currenttime.toString(), temperature);

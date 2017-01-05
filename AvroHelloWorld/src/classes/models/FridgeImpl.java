@@ -19,6 +19,7 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 
 import sourcefiles.*;
 import utility.Heartbeat;
+import utility.LANIp;
 import utility.NetworkDiscoveryClient;
 import utility.ReplicationGenerator;
 
@@ -64,7 +65,8 @@ public class FridgeImpl implements FridgeProtocol {
             ServerSocket s = new ServerSocket(0);
             port = s.getLocalPort();
             s.close();
-            ip = InetAddress.getLocalHost().getHostAddress();
+            InetAddress localaddress = LANIp.getAddress();
+            ip = localaddress.toString().split("/")[1];
             client = new SaslSocketTransceiver(serverAddress);
             proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
             repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
@@ -231,6 +233,7 @@ public class FridgeImpl implements FridgeProtocol {
                 serverAddress = new InetSocketAddress(serverIpSplit[0], Integer.parseInt(serverIpSplit[1]));
                 client = new SaslSocketTransceiver(serverAddress);
                 proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+                heartbeat.setServer(serverAddress);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -241,6 +244,7 @@ public class FridgeImpl implements FridgeProtocol {
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
         System.out.println("received electionMessage");
+        this.heartbeat.setuserName("");
         if (nextNeighbour.size() > 0) {
             int ownId = Integer.parseInt(id);
             int incId = Integer.parseInt(previousId.toString());
@@ -343,20 +347,22 @@ public class FridgeImpl implements FridgeProtocol {
     }
 
     private void connectToServer() {
-        try {
-            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-            serverAddress = FindServer.findServer();
-            serverFound = true;
-            heartbeat.setServer(serverAddress);
-            heartbeatThread = new Thread(heartbeat);
-            heartbeatThread.setUncaughtExceptionHandler(h);
-            heartbeatThread.start();
-        } catch (IOException e) {
-            //Server can't be found
-            serverFound = false;
-            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
-
-        }
+    	while(!serverFound){
+	        try {
+	            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
+	            serverAddress = FindServer.findServer();
+	            serverFound = true;
+	            heartbeat.setServer(serverAddress);
+	            heartbeatThread = new Thread(heartbeat);
+	            heartbeatThread.setUncaughtExceptionHandler(h);
+	            heartbeatThread.start();
+	        } catch (IOException e) {
+	            //Server can't be found
+	            serverFound = false;
+	            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
+	
+	        }
+    	}
     }
 
     @Override

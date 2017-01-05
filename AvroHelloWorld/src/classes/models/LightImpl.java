@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,7 @@ public class LightImpl implements LightProtocol {
             System.out.println("Couldnt find server during heartbeat");
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
+            connectToServer();
         }
     };
 
@@ -128,18 +130,19 @@ public class LightImpl implements LightProtocol {
     }
 
     private void connectToServer() {
-        try {
-            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-            serverAddress = FindServer.findServer();
-            serverFound = true;
-            heartbeat.setServer(serverAddress);
-            heartbeatThread = new Thread(heartbeat);
-            heartbeatThread.setUncaughtExceptionHandler(h);
-            heartbeatThread.start();
-        } catch (IOException e) {
-            //Server can't be found
-            serverFound = false;
-            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
-        }
+    	while(!serverFound){
+	        try {
+	            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
+	            serverAddress = FindServer.findServer();
+	            serverFound = true;
+	            heartbeat.setServer(serverAddress);
+	            heartbeatThread = new Thread(heartbeat);
+	            heartbeatThread.setUncaughtExceptionHandler(h);
+	            heartbeatThread.start();
+	        } catch (IOException e) {
+	            //Server can't be found
+	            serverFound = false;
+	        }
+    	}
     }
 }

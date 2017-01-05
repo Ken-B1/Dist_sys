@@ -36,6 +36,12 @@ public class Heartbeat implements Runnable{
 	@Override
 	public void run(){
 		while(true){
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			if(this.server.toString() != "/0.0.0.0:0" && userName != ""){
 				try{
 					Transceiver client = new SaslSocketTransceiver(server);
@@ -44,15 +50,8 @@ public class Heartbeat implements Runnable{
 					client.close();
 				} catch(IOException e){
 					//Something went wrong while trying to send heartbeats
-					System.out.println("xxxx");
 					throw new RuntimeException("Couldn't find server during heartbeat");
 				}
-			}
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
 		}
 	}

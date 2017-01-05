@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 
 import sourcefiles.*;
 import utility.Heartbeat;
+import utility.LANIp;
 import utility.NetworkDiscoveryClient;
 import utility.ReplicationGenerator;
 import utility.TemperatureMeasurementRecord;
@@ -65,10 +67,12 @@ public class UserImpl implements UserProtocol {
         heartbeat = new Heartbeat();
         connectToServer();
         try {
+        	InetAddress localaddress = LANIp.getAddress();
+            ip = localaddress.toString().split("/")[1];
+            System.out.println(ip);
             ServerSocket s = new ServerSocket(0);
             portNumber = s.getLocalPort();
             s.close();
-            ip = InetAddress.getLocalHost().getHostAddress();
             server = new SaslSocketServer(new SpecificResponder(UserProtocol.class, this), new InetSocketAddress(ip, portNumber));
             server.start();
             client = new SaslSocketTransceiver(serverAddress);
@@ -164,14 +168,12 @@ public class UserImpl implements UserProtocol {
 
             Transceiver client = new SaslSocketTransceiver(serverAddress);
             ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-            proxy.changeLightState(selectedType).toString();
+            String answer = proxy.changeLightState(selectedType).toString();
+            System.out.println(answer);
             client.close();
             //Start the procedure of updating temperature and sending it to the server
         } catch (AvroRuntimeException e){
         	System.err.println("That light doesnt exist");
-        } catch (AvroRemoteException e) {
-            System.err.println("Error joining");
-            System.exit(1);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -275,18 +277,15 @@ public class UserImpl implements UserProtocol {
         if (!serverFound) {
             connectToServer();
         }
-        try {
+        try{
             Transceiver client = new SaslSocketTransceiver(serverAddress);
             ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
             System.out.println(proxy.showCurrentHouseTemp());
             client.close();
-            //Start the procedure of updating temperature and sending it to the server
-        } catch (AvroRuntimeException e) {
-            //No temperature sensors are added to the system
-            System.err.println(e.getMessage());
-            System.out.println("Maybe you need to buy some temperature sensors.");
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch(IOException e){
+        	System.out.println("Could not connect to server");
+        } catch(AvroRuntimeException e){
+        	System.out.println("There are no temperaturemeasurements.");
         }
     }
 
@@ -308,7 +307,6 @@ public class UserImpl implements UserProtocol {
             //Start the procedure of updating temperature and sending it to the server
         } catch (AvroRuntimeException e) {
             //No temperature sensors are added to the system
-            System.err.println(e.getMessage());
             System.out.println("Maybe you need to buy some temperature sensors.");
         } catch (IOException e) {
             e.printStackTrace();
@@ -387,59 +385,21 @@ public class UserImpl implements UserProtocol {
     }
 
     private void connectToServer() {
-        try {
-            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-            serverAddress = FindServer.findServer();
-            serverFound = true;
-            heartbeat.setServer(serverAddress);
-            heartbeatThread = new Thread(heartbeat);
-            heartbeatThread.setUncaughtExceptionHandler(h);
-            heartbeatThread.start();
-        } catch (IOException e) {
-            //Server can't be found
-            serverFound = false;
-            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
-        }
-
-        /* //Method that will connect to the server
-        while (!serverFound) {
-            //Make sure the server hasnt been found yet
-            try {
-                NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-                serverAddress = FindServer.findServer();
-                //Server has been found, so enter it
-                ServerSocket s = new ServerSocket(0);
-                portNumber = s.getLocalPort();
-                s.close();
-
-                client = new SaslSocketTransceiver(serverAddress);
-                proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-                id = proxy.enter("user", InetAddress.getLocalHost().getHostAddress() + "," + portNumber).toString();
-                System.out.println(id);
-
-                //Make sure the replicationdata is up to date
-                repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
-                client.close();
-
-
-                serverFound = true;
-                heartbeat.setServer(serverAddress);
-                heartbeat.setuserName(id);
-                heartbeatThread = new Thread(heartbeat);
-                heartbeatThread.setUncaughtExceptionHandler(h);
-                heartbeatThread.start();
-
-            } catch (IOException e) {
-                System.out.println("Searching for server.");
-            }
-            //Try again in 1 second
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }*/
+    	while(!serverFound){
+	        try {
+	            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
+	            serverAddress = FindServer.findServer();
+	            serverFound = true;
+	            heartbeat.setServer(serverAddress);
+	            heartbeatThread = new Thread(heartbeat);
+	            heartbeatThread.setUncaughtExceptionHandler(h);
+	            heartbeatThread.start();
+	        } catch (IOException e) {
+	            //Server can't be found
+	            serverFound = false;
+	            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
+	        }
+    	}
     }
 
     @Override
@@ -584,6 +544,7 @@ public class UserImpl implements UserProtocol {
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
         System.out.println("received electionMessage");
+        this.heartbeat.setuserName("");
         if (nextNeighbour.size() > 0) {
             int ownId = Integer.parseInt(id);
             int incId = Integer.parseInt(previousId.toString());

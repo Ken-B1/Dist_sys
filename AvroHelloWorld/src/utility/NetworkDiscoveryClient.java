@@ -42,8 +42,9 @@ public class NetworkDiscoveryClient{
 
       //Check if the message is correct
       String message = new String(receivePacket.getData()).trim();
-      if (message.equals("DISCOVER_SERVER_RESPONSE")) {
-        InetSocketAddress address = new InetSocketAddress(receivePacket.getAddress(), 6789);
+      String[] message2 = message.split(",");
+      if (message2[0].equals("DISCOVER_SERVER_RESPONSE")) {
+        InetSocketAddress address = new InetSocketAddress(receivePacket.getAddress(), Integer.parseInt(message2[1]));
         c.close();
         return address;
       }

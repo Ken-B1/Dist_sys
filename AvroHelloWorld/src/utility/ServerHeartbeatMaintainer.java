@@ -12,6 +12,7 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 
 import classes.ServerExe;
 import classes.models.ServerImpl;
+import sourcefiles.ReplicationData;
 
 //The maintainer will hold all the heartbeats of the devices and notify the server if a device hasnt answered in a while
 public class ServerHeartbeatMaintainer implements Runnable{
@@ -65,6 +66,25 @@ public class ServerHeartbeatMaintainer implements Runnable{
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public void updateReplication(ReplicationData data) {
+		// TODO Auto-generated method stub
+        for(Entry<CharSequence, CharSequence> entry : data.getConnectedUsers().entrySet()){
+        	this.updateClient(entry.getKey().toString());
+        }
+        
+        for(Entry<CharSequence, CharSequence> entry : data.getConnectedLights().entrySet()){
+        	this.updateClient(entry.getKey().toString());       	
+        }
+        
+        for(Entry<CharSequence, CharSequence> entry : data.getConnectedFridges().entrySet()){
+        	this.updateClient(entry.getKey().toString());       	
+        }
+        
+        for(Entry<CharSequence, CharSequence> entry : data.getConnectedTS().entrySet()){
+        	this.updateClient(entry.getKey().toString());      	
+        }
 	}
 	
 }

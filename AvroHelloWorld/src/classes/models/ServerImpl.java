@@ -3,6 +3,7 @@ package classes.models;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.*;
@@ -20,6 +21,7 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 
 import classes.ServerExe;
 import sourcefiles.*;
+import utility.LANIp;
 import utility.NetworkDiscoveryServer;
 import utility.ServerHeartbeatMaintainer;
 import utility.TemperatureMeasurementRecord;
@@ -47,12 +49,13 @@ public class ServerImpl implements ServerProtocol {
         lastNeighbour = new ArrayList<String>();
         fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
         try {
-        	Socket s = new Socket("192.168.1.1", 80);
-        	InetAddress localadress =  s.getLocalAddress();
-        	s.close();
-            Thread server1 = new Thread(new NetworkDiscoveryServer());
+        	InetAddress localaddress = LANIp.getAddress();
+        	ServerSocket s1 = new ServerSocket(0);
+			int portnumber = s1.getLocalPort();
+			s1.close();
+            Thread server1 = new Thread(new NetworkDiscoveryServer(portnumber));
             server1.start();
-            server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this), new InetSocketAddress(localadress, 6789));
+            server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this), new InetSocketAddress(localaddress, portnumber));
             server.start();
         } catch (IOException e) {
             System.err.println("[error]: Failed to start server");
@@ -75,7 +78,11 @@ public class ServerImpl implements ServerProtocol {
         this.connectedTS = data.getConnectedTS();
         this.temperatures = new ArrayList<TemperatureMeasurementRecord>();
         this.idCounter = data.getIdCounter();
-
+        heartbeat.updateReplication(data);
+        if (heartbeatThread.getState() == Thread.State.NEW) {
+        	heartbeatThread.start();
+        }
+        
         firstNeighbour = new ArrayList<String>();
         lastNeighbour = new ArrayList<String>();
 
@@ -95,9 +102,13 @@ public class ServerImpl implements ServerProtocol {
         this.userlocation = data.getUserlocation();
 
         try {
-            Thread server1 = new Thread(new NetworkDiscoveryServer());
+        	InetAddress localaddress = LANIp.getAddress();
+        	ServerSocket s1 = new ServerSocket(0);
+			int portnumber = s1.getLocalPort();
+			s1.close();
+            Thread server1 = new Thread(new NetworkDiscoveryServer(portnumber));
             server1.start();
-            server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this), new InetSocketAddress(InetAddress.getLocalHost(), 6789));
+            server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this), new InetSocketAddress(localaddress, portnumber));
             server.start();
         } catch (IOException e) {
             System.err.println("[error]: Failed to start server");
@@ -491,15 +502,11 @@ public class ServerImpl implements ServerProtocol {
 
         } catch (AvroRemoteException e) {
             System.err.println("Error joining");
-            e.printStackTrace(System.err);
-            System.exit(1);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
+        } catch (UnknownHostException e) {;
         } catch (IOException e) {
-            e.printStackTrace();
         } catch (NullPointerException e){
         	//The requested light doesnt exist
-        	throw new AvroRemoteException(e);
+        	return "That light doesn't exist";
         }
         if (status) {
             return lightName + " is now on";
@@ -511,7 +518,7 @@ public class ServerImpl implements ServerProtocol {
     @Override
     public int showCurrentHouseTemp() throws AvroRemoteException {
         if (temperatures.isEmpty()) {
-            throw new AvroRuntimeException("NoMeasurementsError");
+       		throw new AvroRemoteException("No temperatures found");
         }
         return (int) temperatures.get(temperatures.size() - 1).record.getTemperature().intValue();
     }

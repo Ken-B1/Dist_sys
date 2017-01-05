@@ -5,7 +5,11 @@ import java.net.DatagramSocket;
 
 public class NetworkDiscoveryServer implements Runnable{
 
-	public NetworkDiscoveryServer(){
+	private int portnumber;
+
+
+	public NetworkDiscoveryServer(int portnumber){
+		this.portnumber = portnumber;
 	}
 	
 	
@@ -30,7 +34,7 @@ public class NetworkDiscoveryServer implements Runnable{
 		      //See if the packet holds the right command (message)
 		      String message = new String(packet.getData()).trim();
 		      if (message.equals("DISCOVER_SERVER_REQUEST")) {
-		        byte[] sendData = "DISCOVER_SERVER_RESPONSE".getBytes();
+		        byte[] sendData = ("DISCOVER_SERVER_RESPONSE," + this.portnumber).getBytes();
 
 		        //Send a response
 		        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, packet.getAddress(), packet.getPort());
