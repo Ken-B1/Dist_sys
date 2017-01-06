@@ -46,6 +46,7 @@ public class TempSensImpl implements TSProtocol {
 	        System.out.println("Couldnt find server during heartbeat");
 	        serverAddress = new InetSocketAddress("0.0.0.0", 0);
 	        serverFound = false;
+	        connectToServer();
 	    }
 	};
 	public TempSensImpl(double temperature) throws InterruptedException{

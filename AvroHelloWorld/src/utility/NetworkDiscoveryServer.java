@@ -2,6 +2,7 @@ package utility;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 public class NetworkDiscoveryServer implements Runnable{
 
@@ -34,7 +35,8 @@ public class NetworkDiscoveryServer implements Runnable{
 		      //See if the packet holds the right command (message)
 		      String message = new String(packet.getData()).trim();
 		      if (message.equals("DISCOVER_SERVER_REQUEST")) {
-		        byte[] sendData = ("DISCOVER_SERVER_RESPONSE," + this.portnumber).getBytes();
+		    	String response = "DISCOVER_SERVER_RESPONSE," + LANIp.getAddress().toString().split("/")[1].toString() + "," + this.portnumber;
+		    	byte[] sendData = (response).getBytes();
 
 		        //Send a response
 		        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, packet.getAddress(), packet.getPort());

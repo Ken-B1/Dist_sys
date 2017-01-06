@@ -230,6 +230,7 @@ public class ServerImpl implements ServerProtocol {
             if (entry.getKey().toString().equalsIgnoreCase(userName.toString())) {
                 connectedLights.remove(userName);
                 type="light";
+                return "Light lost connection";
             }
         }
 
@@ -237,6 +238,7 @@ public class ServerImpl implements ServerProtocol {
             if (entry.getKey().toString().equalsIgnoreCase(userName.toString())) {
                 connectedTS.remove(userName);
                 type="temperature sensor";
+                return "Temperature sensor lost connection";
             }
         }
 

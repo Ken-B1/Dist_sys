@@ -44,7 +44,7 @@ public class NetworkDiscoveryClient{
       String message = new String(receivePacket.getData()).trim();
       String[] message2 = message.split(",");
       if (message2[0].equals("DISCOVER_SERVER_RESPONSE")) {
-        InetSocketAddress address = new InetSocketAddress(receivePacket.getAddress(), Integer.parseInt(message2[1]));
+        InetSocketAddress address = new InetSocketAddress(message2[1], Integer.parseInt(message2[2]));
         c.close();
         return address;
       }
