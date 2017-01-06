@@ -25,7 +25,17 @@ public class UserExe {
 			System.out.println("i: leaveHouse");
 			System.out.println("j: exit");
 			selectedType = keyboard.nextLine();
-			
+			System.out.println(user.isServer);
+			if(user.isServer){
+				selectedType = "";
+				try {
+					System.out.println("test");
+					Thread.sleep(5000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 			switch(selectedType){
 			case "a":
 				user.requestLights();
@@ -58,7 +68,7 @@ public class UserExe {
 				user.printAggregate();
 				break;
 			}
-		} while(!selectedType.equalsIgnoreCase("j") && !selectedType.equalsIgnoreCase("exit"));
+		}while(!selectedType.equalsIgnoreCase("j") && !selectedType.equalsIgnoreCase("exit"));
 		keyboard.close();
 	}
 }

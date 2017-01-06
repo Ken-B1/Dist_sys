@@ -44,6 +44,7 @@ public class UserImpl implements UserProtocol {
     private boolean inElection;
     InetSocketAddress serverAddress;
     private Server server = null;
+    public boolean isServer = false;
 
     Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
         public void uncaughtException(Thread th, Throwable ex) {
@@ -527,7 +528,9 @@ public class UserImpl implements UserProtocol {
 
     public Void setNewServer(CharSequence serverIp) throws AvroRemoteException {
         if (serverIp.toString().equalsIgnoreCase(ip + "," + portNumber)) {
+            this.isServer = true;
             new ServerImpl(repdata);
+            
         } else {
             String[] serverIpSplit = serverIp.toString().split(",");
             try {
