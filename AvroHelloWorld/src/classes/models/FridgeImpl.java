@@ -8,6 +8,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.SaslSocketServer;
@@ -47,7 +49,20 @@ public class FridgeImpl implements FridgeProtocol {
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
 
-            System.out.println("starting election");
+            System.out.println("Trying to find server again");
+
+            /*
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            connectToServer();
+
+            if (!serverFound) {
+                System.out.println("starting election");
+                startElection();
+            }*/
             startElection();
         }
     };
@@ -70,6 +85,8 @@ public class FridgeImpl implements FridgeProtocol {
             repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
             server = new SaslSocketServer(new SpecificResponder(FridgeProtocol.class, this), new InetSocketAddress(ip, port));
             server.start();
+            id = proxy.enter("fridge", ip + "," + port).toString();
+            heartbeat.setuserName(id);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -108,23 +125,24 @@ public class FridgeImpl implements FridgeProtocol {
         }
     }
 
-    public void join() {
+   /* public void join() {
+        connectToServer();
         try {
             id = proxy.enter("fridge", ip + "," + port).toString();
             heartbeat.setuserName(id);
         } catch (AvroRemoteException e) {
             e.printStackTrace();
         }
-    }
+    }*/
 
-    public void leave() {
+   /* public void leave() {
         try {
             proxy.leave(id);
             heartbeat.setuserName("");
         } catch (AvroRemoteException e) {
             e.printStackTrace();
         }
-    }
+    }*/
 
     public void showName() {
         System.out.println(id);
@@ -221,8 +239,15 @@ public class FridgeImpl implements FridgeProtocol {
 
     public Void setNewServer(CharSequence serverIp) throws AvroRemoteException {
         if (serverIp.toString().equalsIgnoreCase(ip + "," + port)) {
-            new ServerImpl(repdata);
-        } else {
+           // new ServerImpl(repdata);
+            Executor executor = Executors.newSingleThreadExecutor();
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    new ServerImpl(repdata);
+                }
+            });
+        }/* else {
             String[] serverIpSplit = serverIp.toString().split(",");
             try {
                 if (client.isConnected()) {
@@ -234,18 +259,39 @@ public class FridgeImpl implements FridgeProtocol {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
+        }*/
         return null;
     }
 
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
         System.out.println("received electionMessage");
-       // if (nextNeighbour.size() > 0) {
-            int ownId = Integer.parseInt(id);
-            int incId = Integer.parseInt(previousId.toString());
-            if (incId > ownId) {
-                System.out.println("inc id is bigger than mine");
+        // if (nextNeighbour.size() > 0) {
+        int ownId = Integer.parseInt(id);
+        int incId = Integer.parseInt(previousId.toString());
+        if (incId > ownId) {
+            System.out.println("inc id is bigger than mine");
+            inElection = true;
+            String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
+            try {
+                Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
+                switch (nextNeighbour.get(2)) {
+                    case "fridge":
+                        FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+                        fridgeProxy.sendElectionMessage(previousId);
+                        break;
+                    case "user":
+                        UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+                        userProxy.sendElectionMessage(previousId);
+                        break;
+                }
+                client.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else if (incId < ownId) {
+            System.out.println("inc id is smaller than mine");
+            if (inElection == false) {
                 inElection = true;
                 String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
                 try {
@@ -253,61 +299,42 @@ public class FridgeImpl implements FridgeProtocol {
                     switch (nextNeighbour.get(2)) {
                         case "fridge":
                             FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                            fridgeProxy.sendElectionMessage(previousId);
+                            fridgeProxy.sendElectionMessage(id);
                             break;
                         case "user":
                             UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                            userProxy.sendElectionMessage(previousId);
+                            userProxy.sendElectionMessage(id);
                             break;
                     }
                     client.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            } else if (incId < ownId) {
-                System.out.println("inc id is smaller than mine");
-                if (inElection == false) {
-                    inElection = true;
-                    String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
-                    try {
-                        Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
-                        switch (nextNeighbour.get(2)) {
-                            case "fridge":
-                                FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                                fridgeProxy.sendElectionMessage(id);
-                                break;
-                            case "user":
-                                UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                                userProxy.sendElectionMessage(id);
-                                break;
-                        }
-                        client.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } else {
-                System.out.println("I have the highest ID");
-                inElection = false;
-                String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
-                try {
-                    Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
-                    switch (nextNeighbour.get(2)) {
-                        case "fridge":
-                            FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                            fridgeProxy.sendElectedMessage(id, ip + "," + port);
-                            break;
-                        case "user":
-                            UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                            userProxy.sendElectedMessage(id, ip + "," + port);
-                            break;
-                    }
-                    client.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                setNewServer(ip + "," + port);
             }
+        } else {
+            System.out.println("I have the highest ID");
+            setNewServer(ip + "," + port);
+            inElection = false;
+            String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
+            try {
+                Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
+                switch (nextNeighbour.get(2)) {
+                    case "fridge":
+                        System.out.println("sending electedMessage to fridge");
+                        FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+                        fridgeProxy.sendElectedMessage(id, ip + "," + port);
+                        break;
+                    case "user":
+                        System.out.println("sending electedMessage to user");
+                        UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+                        userProxy.sendElectedMessage(id, ip + "," + port);
+                        break;
+                }
+                client.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
        /* } else {
             System.out.println("I am the only client, I will be server");
             setNewServer(ip + "," + port);
@@ -318,8 +345,9 @@ public class FridgeImpl implements FridgeProtocol {
     @Override
     public Void sendElectedMessage(CharSequence electedId, CharSequence electedIp) throws AvroRemoteException {
         System.out.println("received ELECTED id");
+        //TODO if nakijken, nog nodig?
         if (!electedId.toString().equalsIgnoreCase(id.toString())) {
-            setNewServer(electedIp);
+            //setNewServer(electedIp);
             inElection = false;
             String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
             try {
@@ -338,14 +366,15 @@ public class FridgeImpl implements FridgeProtocol {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            connectToServer();
         }
         return null;
     }
 
     private void connectToServer() {
         try {
-            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-            serverAddress = FindServer.findServer();
+            NetworkDiscoveryClient findServer = new NetworkDiscoveryClient();
+            serverAddress = findServer.findServer();
             serverFound = true;
             heartbeat.setServer(serverAddress);
             heartbeatThread = new Thread(heartbeat);
@@ -355,8 +384,9 @@ public class FridgeImpl implements FridgeProtocol {
             //Server can't be found
             serverFound = false;
             heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
-
         }
+
+        System.out.println("connectToServer done");
     }
 
     @Override
@@ -376,14 +406,14 @@ public class FridgeImpl implements FridgeProtocol {
 
     @Override
     public CharSequence updateRepDataNeighbours(List<CharSequence> firstNeighbour, List<CharSequence> lastNeighbour) throws AvroRemoteException {
-        repdata.firstNeighbour=firstNeighbour;
-        repdata.lastNeighbour=lastNeighbour;
+        repdata.firstNeighbour = firstNeighbour;
+        repdata.lastNeighbour = lastNeighbour;
         return "Neighbours updated";
     }
 
     @Override
     public CharSequence updateRepDataIdCounter(int idCounter) throws AvroRemoteException {
-        repdata.idCounter=idCounter;
+        repdata.idCounter = idCounter;
         return "IdCounter updated";
     }
 
@@ -409,7 +439,7 @@ public class FridgeImpl implements FridgeProtocol {
             }
         } else {
             try {
-                setNewServer(ip+","+port);
+                setNewServer(ip + "," + port);
             } catch (AvroRemoteException e) {
                 e.printStackTrace();
             }

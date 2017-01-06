@@ -44,6 +44,15 @@ public class LightImpl implements LightProtocol {
             System.out.println("Couldnt find server during heartbeat");
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
+
+            do {
+                connectToServer();
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } while (serverFound == false);
         }
     };
 
@@ -62,6 +71,8 @@ public class LightImpl implements LightProtocol {
             proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
             server = new SaslSocketServer(new SpecificResponder(LightProtocol.class, this), new InetSocketAddress(ip, port));
             server.start();
+            id = proxy.enter("light",ip+","+port).toString();
+            heartbeat.setuserName(id);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -78,11 +89,12 @@ public class LightImpl implements LightProtocol {
         }
         return status;
     }
-	@Override
-	public Void setState(boolean state) throws AvroRemoteException {
-		status = state;
-		return null;
-	}
+
+    @Override
+    public Void setState(boolean state) throws AvroRemoteException {
+        status = state;
+        return null;
+    }
 
     @Override
     public boolean getState() throws AvroRemoteException {
@@ -105,7 +117,8 @@ public class LightImpl implements LightProtocol {
         return null;
     }
 
-    public void join() {
+   /* public void join() {
+        connectToServer();
         try {
             id = proxy.enter("light", ip + "," + port).toString();
             heartbeat.setuserName(id);
@@ -121,7 +134,7 @@ public class LightImpl implements LightProtocol {
         } catch (AvroRemoteException e) {
             e.printStackTrace();
         }
-    }
+    }*/
 
     public void showName() {
         System.out.println(id);
@@ -129,8 +142,9 @@ public class LightImpl implements LightProtocol {
 
     private void connectToServer() {
         try {
-            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-            serverAddress = FindServer.findServer();
+            NetworkDiscoveryClient findServer = new NetworkDiscoveryClient();
+            serverAddress = findServer.findServer();
+            System.out.println("server found on: " + serverAddress);
             serverFound = true;
             heartbeat.setServer(serverAddress);
             heartbeatThread = new Thread(heartbeat);
