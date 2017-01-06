@@ -57,6 +57,7 @@ public class ServerImpl implements ServerProtocol {
             server1.start();
             server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this), new InetSocketAddress(localaddress, portnumber));
             server.start();
+
         } catch (IOException e) {
             System.err.println("[error]: Failed to start server");
             e.printStackTrace(System.err);
@@ -182,8 +183,7 @@ public class ServerImpl implements ServerProtocol {
                 String[] userValue = entry.getValue().toString().split(",");
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
                 UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                //TODO uitwerking nakijken, name heeft geen light, ts, user of fridge meer
-                proxy.enter(name, ip);
+                proxy.enter(name, ip,type);
                 proxy.updateRepDataIdCounter(idCounter);
                 System.out.println(proxy.updateRepDataNeighbours(firstNeighbourCharSequence, lastNeighbourCharSequence));
                 client.close();
@@ -202,9 +202,10 @@ public class ServerImpl implements ServerProtocol {
             }*/
             try {
                 String[] userValue = entry.getValue().toString().split(",");
+                System.out.println("connecting to fridge at ip: " + userValue[0] + " and at port: " + userValue[1]);
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
                 FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                proxy.enter(name, ip);
+                proxy.enter(name, ip,type);
                 proxy.updateRepDataIdCounter(idCounter);
                 System.out.println(proxy.updateRepDataNeighbours(firstNeighbourCharSequence, lastNeighbourCharSequence));
                 client.close();
@@ -223,16 +224,19 @@ public class ServerImpl implements ServerProtocol {
     public CharSequence leave(CharSequence userName) throws AvroRemoteException {
         System.out.println("Removing: " + userName);
         List<CharSequence> neighbours = new ArrayList<CharSequence>();
+        CharSequence type = "";
 
         for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()) {
             if (entry.getKey().toString().equalsIgnoreCase(userName.toString())) {
                 connectedLights.remove(userName);
+                type="light";
             }
         }
 
         for (Entry<CharSequence, CharSequence> entry : connectedTS.entrySet()) {
             if (entry.getKey().toString().equalsIgnoreCase(userName.toString())) {
                 connectedTS.remove(userName);
+                type="temperature sensor";
             }
         }
 
@@ -251,6 +255,7 @@ public class ServerImpl implements ServerProtocol {
                 }
                 connectedFridges.remove(userName);
                 fridgeAccessQueue.remove(userName.toString());
+                type="fridge";
             }
         }
 
@@ -268,6 +273,7 @@ public class ServerImpl implements ServerProtocol {
                     e.printStackTrace();
                 }
                 connectedUsers.remove(userName);
+                type="user";
             }
         }
 
@@ -396,7 +402,7 @@ public class ServerImpl implements ServerProtocol {
                 String[] userValue = entry.getValue().toString().split(",");
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
                 FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                proxy.leave(userName);
+                proxy.leave(userName,type);
                 proxy.updateRepDataNeighbours(firstNeighbourCharSequence, lastNeighbourCharSequence);
                 client.close();
             } catch (NumberFormatException e) {
@@ -412,7 +418,7 @@ public class ServerImpl implements ServerProtocol {
                 String[] userValue = entry.getValue().toString().split(",");
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
                 UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                proxy.leave(userName);
+                proxy.leave(userName,type);
                 proxy.updateRepDataNeighbours(firstNeighbourCharSequence, lastNeighbourCharSequence);
                 client.close();
             } catch (NumberFormatException e) {

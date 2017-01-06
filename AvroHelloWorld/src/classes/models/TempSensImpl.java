@@ -33,15 +33,11 @@ public class TempSensImpl implements TSProtocol {
 	private String ip;
 	private int portnumber;
 	private Transceiver client;
-	ServerProtocol proxy;
 	private InetSocketAddress serverAddress;
 	private boolean serverFound;
 	private Vector<TemperatureRecord> temperatures;
 	private Heartbeat heartbeat;
 	private Thread heartbeatThread;
-	private List<String> previousNeighbour;
-	private List<String> nextNeighbour;
-	private boolean inElection;
 
 	//Exceptionhandler for heartbeat thread 
 	Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
@@ -53,14 +49,12 @@ public class TempSensImpl implements TSProtocol {
 	    }
 	};
 	public TempSensImpl(double temperature) throws InterruptedException{
-		previousNeighbour = new ArrayList<String>();
-		nextNeighbour = new ArrayList<String>();
-		inElection=false;
 		serverFound = false;
 		temperatures = new Vector<TemperatureRecord>();
 		heartbeat=new Heartbeat();
 		//Try to connect to server 
-		searchServer();
+		connectToServer();
+		
 		
 		LocalTime currenttime = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
 		TemperatureRecord newtemp = new TemperatureRecord(currenttime.toString(), temperature);
@@ -68,29 +62,6 @@ public class TempSensImpl implements TSProtocol {
 		sendToServer(newtemp);
 		updateTemperature();
 		System.out.println("TempSens created!");
-	}
-
-	public void searchServer(){
-		try{
-			NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
-			serverAddress = FindServer.findServer();
-			serverFound = true;
-			heartbeat.setServer(serverAddress);
-			heartbeatThread = new Thread(heartbeat);
-			heartbeatThread.setUncaughtExceptionHandler(h);
-			heartbeatThread.start();
-			Transceiver client = new SaslSocketTransceiver(serverAddress);
-			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			CharSequence newUserName = proxy.enter("temperature sensor", ip + "," + portnumber);
-			id = newUserName.toString();
-			heartbeat.setuserName(newUserName.toString());
-			client.close();
-		} catch(IOException e){
-			//Server can't be found
-			serverFound = false;
-			heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
-			
-		}
 	}
 	
 	private void updateTemperature(){
@@ -120,7 +91,7 @@ public class TempSensImpl implements TSProtocol {
 	private void sendToServer(TemperatureRecord record){
 		//First check if the server has been found yet
 		if(!serverFound){
-			searchServer();
+			connectToServer();
 		}
 		
 		//If server has been found, try to send new temperature
@@ -137,20 +108,28 @@ public class TempSensImpl implements TSProtocol {
 		}
 	}
 
-    @Override
-    public CharSequence setNewServer(CharSequence serverIp) throws AvroRemoteException {
-        String[] serverIpSplit = serverIp.toString().split(",");
-        try {
-            if (client.isConnected()) {
-                client.close();
-            }
-            serverAddress = new InetSocketAddress(serverIpSplit[0], Integer.parseInt(serverIpSplit[1]));
-            client = new SaslSocketTransceiver(serverAddress);
-            proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+    private void connectToServer() {
+    	while(!serverFound){
+	        try {
+	            NetworkDiscoveryClient findServer = new NetworkDiscoveryClient();
+	            serverAddress = findServer.findServer();
+	            serverFound = true;	            
+	            client = new SaslSocketTransceiver(serverAddress);
+	            ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+	            CharSequence newUserName = proxy.enter("temperature sensor", ip + "," + portnumber);
+	            heartbeat.setServer(serverAddress);
+	            heartbeatThread = new Thread(heartbeat);
+	            heartbeatThread.setUncaughtExceptionHandler(h);
+	            heartbeatThread.start();
+	            id = newUserName.toString();
+	            heartbeat.setuserName(newUserName.toString());
+	            client.close();
+	        } catch (IOException e) {
+	            //Server can't be found
+	            serverFound = false;
+	            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
+	
+	        }
+    	}
     }
-
 }

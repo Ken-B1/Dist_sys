@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Map.Entry;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.AvroRuntimeException;
@@ -53,8 +55,6 @@ public class UserImpl implements UserProtocol {
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
             //connectToServer();
-
-            System.out.println("starting election");
             startElection();
         }
     };
@@ -87,27 +87,6 @@ public class UserImpl implements UserProtocol {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
-       /* previousNeighbour = new ArrayList<String>();
-        nextNeighbour = new ArrayList<String>();
-        inElection = false;
-        id = "";
-        heartbeat = new Heartbeat();
-        connectToServer();
-
-        try {
-            ServerSocket s = new ServerSocket(0);
-            portNumber = s.getLocalPort();
-            s.close();
-            ip = InetAddress.getLocalHost().getHostAddress();
-            server = new SaslSocketServer(new SpecificResponder(UserProtocol.class, this), new InetSocketAddress(ip, portNumber));
-            server.start();
-
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }*/
         System.out.println("User created!");
     }
 
@@ -389,12 +368,14 @@ public class UserImpl implements UserProtocol {
     }
 
     private void connectToServer() {
+    	
     	while(!serverFound){
 	        try {
 	            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
 	            serverAddress = FindServer.findServer();
 	            serverFound = true;
 	            heartbeat.setServer(serverAddress);
+	            heartbeat.setuserName(id);
 	            heartbeatThread = new Thread(heartbeat);
 	            heartbeatThread.setUncaughtExceptionHandler(h);
 	            heartbeatThread.start();
@@ -403,48 +384,52 @@ public class UserImpl implements UserProtocol {
 	            serverFound = false;
 	            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
 	        }
+	        try{
+	        	Thread.sleep(1000);
+	        } catch (Exception e){
+	        	
+	        }
     	}
+        System.out.println("connectToServer done");
     }
 
     @Override
-    public Void enter(CharSequence userName, CharSequence ip) throws AvroRemoteException {
-        //TODO nakijken
-       /* switch (userName.toString().split("[0-9]")[0]) {
-            case "Light":
-                repdata.getConnectedLights().put(userName.toString(), ip);
+    public Void enter(CharSequence userName, CharSequence ip,CharSequence type) throws AvroRemoteException {
+        switch (type.toString()) {
+            case "light":
+                repdata.connectedLights.put(userName.toString(), ip);
                 break;
-            case "TS":
-                repdata.getConnectedTS().put(userName.toString(), ip);
+            case "temperature sensor":
+                repdata.connectedTS.put(userName.toString(), ip);
                 break;
-            case "Fridge":
-                repdata.getConnectedFridges().put(userName.toString(), ip);
+            case "fridge":
+                repdata.connectedFridges.put(userName.toString(), ip);
                 break;
-            case "User":
-                repdata.getConnectedUsers().put(userName.toString(), ip);
-                enterHouse(userName);
+            case "user":
+                repdata.connectedUsers.put(userName.toString(), ip);
+                repdata.userlocation.put(userName.toString(), false);
                 break;
-        }*/
+        }
         return null;
     }
 
     @Override
-    public Void leave(CharSequence userName) throws AvroRemoteException {
-        //TODO nakijken
-        /*switch (userName.toString().split("[0-9]")[0]) {
-            case "Light":
-                repdata.getConnectedLights().remove(userName.toString());
+    public Void leave(CharSequence userName,CharSequence type) throws AvroRemoteException {
+        switch (type.toString()) {
+            case "light":
+                repdata.connectedLights.remove(userName.toString());
                 break;
-            case "TS":
-                repdata.getConnectedTS().remove(userName.toString());
+            case "temperature sensor":
+                repdata.connectedTS.remove(userName.toString());
                 break;
-            case "Fridge":
-                repdata.getConnectedFridges().remove(userName.toString());
+            case "fridge":
+                repdata.connectedFridges.remove(userName.toString());
                 break;
-            case "User":
-                repdata.getConnectedUsers().remove(userName.toString());
-                repdata.getUserlocation().remove(userName.toString());
+            case "user":
+                repdata.connectedUsers.remove(userName.toString());
+                repdata.userlocation.remove(userName.toString());
                 break;
-        }*/
+        }
         return null;
     }
 
@@ -528,21 +513,14 @@ public class UserImpl implements UserProtocol {
 
     public Void setNewServer(CharSequence serverIp) throws AvroRemoteException {
         if (serverIp.toString().equalsIgnoreCase(ip + "," + portNumber)) {
-            this.isServer = true;
-            new ServerImpl(repdata);
-            
-        } else {
-            String[] serverIpSplit = serverIp.toString().split(",");
-            try {
-                if (client.isConnected()) {
-                    client.close();
+        	this.isServer = true;
+            Executor executor = Executors.newSingleThreadExecutor();
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    new ServerImpl(repdata);
                 }
-                serverAddress = new InetSocketAddress(serverIpSplit[0], Integer.parseInt(serverIpSplit[1]));
-                client = new SaslSocketTransceiver(serverAddress);
-                proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            });
         }
         return null;
     }
@@ -552,10 +530,31 @@ public class UserImpl implements UserProtocol {
         System.out.println("received electionMessage");
         this.heartbeat.setuserName("");
         //if (nextNeighbour.size() > 0) {
-            int ownId = Integer.parseInt(id);
-            int incId = Integer.parseInt(previousId.toString());
-            if (incId > ownId) {
-                System.out.println("inc id is bigger than mine");
+        int ownId = Integer.parseInt(id);
+        int incId = Integer.parseInt(previousId.toString());
+        if (incId > ownId) {
+            System.out.println("inc id is bigger than mine");
+            inElection = true;
+            String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
+            try {
+                Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
+                switch (nextNeighbour.get(2)) {
+                    case "fridge":
+                        FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+                        fridgeProxy.sendElectionMessage(previousId);
+                        break;
+                    case "user":
+                        UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+                        userProxy.sendElectionMessage(previousId);
+                        break;
+                }
+                client.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else if (incId < ownId) {
+            System.out.println("inc id is smaller than mine");
+            if (inElection == false) {
                 inElection = true;
                 String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
                 try {
@@ -563,61 +562,43 @@ public class UserImpl implements UserProtocol {
                     switch (nextNeighbour.get(2)) {
                         case "fridge":
                             FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                            fridgeProxy.sendElectionMessage(previousId);
+                            fridgeProxy.sendElectionMessage(id);
                             break;
                         case "user":
                             UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                            userProxy.sendElectionMessage(previousId);
+                            userProxy.sendElectionMessage(id);
                             break;
                     }
                     client.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            } else if (incId < ownId) {
-                System.out.println("inc id is smaller than mine");
-                if (inElection == false) {
-                    inElection = true;
-                    String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
-                    try {
-                        Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
-                        switch (nextNeighbour.get(2)) {
-                            case "fridge":
-                                FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                                fridgeProxy.sendElectionMessage(id);
-                                break;
-                            case "user":
-                                UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                                userProxy.sendElectionMessage(id);
-                                break;
-                        }
-                        client.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } else {
-                System.out.println("I have the highest ID");
-                inElection = false;
-                String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
-                try {
-                    Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
-                    switch (nextNeighbour.get(2)) {
-                        case "fridge":
-                            FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                            fridgeProxy.sendElectedMessage(id, ip + "," + portNumber);
-                            break;
-                        case "user":
-                            UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                            userProxy.sendElectedMessage(id, ip + "," + portNumber);
-                            break;
-                    }
-                    client.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                setNewServer(ip + "," + portNumber);
             }
+        } else {
+            System.out.println("I have the highest ID");
+            setNewServer(ip + "," + portNumber);
+            inElection = false;
+            String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
+            try {
+                Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
+                switch (nextNeighbour.get(2)) {
+                    case "fridge":
+                        System.out.println("sending electedMessage to fridge");
+                        FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
+                        fridgeProxy.sendElectedMessage(id, ip + "," + portNumber);
+                        break;
+                    case "user":
+                        System.out.println("sending electedMessage to user");
+                        UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+                        userProxy.sendElectedMessage(id, ip + "," + portNumber);
+                        break;
+                }
+                client.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
        /* } else {
             System.out.println("I am the only client, I will be server");
             setNewServer(ip + "," + portNumber);
@@ -629,8 +610,9 @@ public class UserImpl implements UserProtocol {
     public Void sendElectedMessage(CharSequence electedId, CharSequence electedIp) throws AvroRemoteException {
         System.out.println("received ELECTED id");
         if (!electedId.toString().equalsIgnoreCase(id.toString())) {
-            setNewServer(electedIp);
+            //setNewServer(electedIp);
             inElection = false;
+            serverFound = false;
             String[] nextNeighbourIpValue = nextNeighbour.get(1).split(",");
             try {
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(nextNeighbourIpValue[0]), Integer.parseInt(nextNeighbourIpValue[1])));
@@ -648,6 +630,8 @@ public class UserImpl implements UserProtocol {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //TODO eventueel een aantal keren laten nakijken of server beschikbaar is
+            connectToServer();
         }
         return null;
     }
@@ -689,7 +673,7 @@ public class UserImpl implements UserProtocol {
             }
         } else {
             try {
-                setNewServer(ip+","+portNumber);
+                setNewServer(ip + "," + portNumber);
             } catch (AvroRemoteException e) {
                 e.printStackTrace();
             }

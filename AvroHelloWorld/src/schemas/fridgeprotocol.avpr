@@ -26,11 +26,11 @@
       "response": "string"
     },     
     "enter": {
-     "request": [{"name": "userName", "type": "string" },{"name": "ip", "type":"string"}],
+     "request": [{"name": "userName", "type": "string" },{"name": "ip", "type":"string"},{"name": "type", "type":"string"}],
      "response": "null"
     },
     "leave": {
-     "request": [{"name": "userName", "type": "string" }],
+     "request": [{"name": "userName", "type": "string" },{"name": "type", "type":"string"}],
      "response": "null"
     },
     "enterHouse": {

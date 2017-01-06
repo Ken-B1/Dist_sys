@@ -8,12 +8,10 @@ package sourcefiles;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public interface TSProtocol {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"TSProtocol\",\"namespace\":\"sourcefiles\",\"types\":[],\"messages\":{\"setNewServer\":{\"request\":[{\"name\":\"serverIp\",\"type\":\"string\"}],\"response\":\"string\"}}}");
-  java.lang.CharSequence setNewServer(java.lang.CharSequence serverIp) throws org.apache.avro.AvroRemoteException;
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"TSProtocol\",\"namespace\":\"sourcefiles\",\"types\":[],\"messages\":{}}");
 
   @SuppressWarnings("all")
   public interface Callback extends TSProtocol {
     public static final org.apache.avro.Protocol PROTOCOL = sourcefiles.TSProtocol.PROTOCOL;
-    void setNewServer(java.lang.CharSequence serverIp, org.apache.avro.ipc.Callback<java.lang.CharSequence> callback) throws java.io.IOException;
   }
 }
