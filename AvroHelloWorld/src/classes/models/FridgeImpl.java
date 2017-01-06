@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.Executor;
@@ -149,42 +150,42 @@ public class FridgeImpl implements FridgeProtocol {
     }
 
     @Override
-    public Void enter(CharSequence userName, CharSequence ip) throws AvroRemoteException {
-        /*switch (userName.toString().split("[0-9]")[0]) {
-            case "Light":
+    public Void enter(CharSequence userName, CharSequence ip, CharSequence type) throws AvroRemoteException {
+        switch (type.toString()) {
+            case "light":
                 repdata.connectedLights.put(userName.toString(), ip);
                 break;
-            case "TS":
+            case "temperature sensor":
                 repdata.connectedTS.put(userName.toString(), ip);
                 break;
-            case "Fridge":
+            case "fridge":
                 repdata.connectedFridges.put(userName.toString(), ip);
                 break;
-            case "User":
+            case "user":
                 repdata.connectedUsers.put(userName.toString(), ip);
                 repdata.userlocation.put(userName.toString(), false);
                 break;
-        }*/
+        }
         return null;
     }
 
     @Override
-    public Void leave(CharSequence userName) throws AvroRemoteException {
-        /*switch (userName.toString().split("[0-9]")[0]) {
-            case "Light":
+    public Void leave(CharSequence userName, CharSequence type) throws AvroRemoteException {
+        switch (type.toString()) {
+            case "light":
                 repdata.connectedLights.remove(userName.toString());
                 break;
-            case "TS":
+            case "temperature sensor":
                 repdata.connectedTS.remove(userName.toString());
                 break;
-            case "Fridge":
+            case "fridge":
                 repdata.connectedFridges.remove(userName.toString());
                 break;
-            case "User":
+            case "user":
                 repdata.connectedUsers.remove(userName.toString());
                 repdata.userlocation.remove(userName.toString());
                 break;
-        }*/
+        }
         return null;
     }
 
@@ -366,7 +367,15 @@ public class FridgeImpl implements FridgeProtocol {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //TODO eventueel een aantal keren laten nakijken of server beschikbaar is
             connectToServer();
+            if(serverFound==false){
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         return null;
     }

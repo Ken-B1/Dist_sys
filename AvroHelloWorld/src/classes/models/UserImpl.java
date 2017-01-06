@@ -459,44 +459,42 @@ public class UserImpl implements UserProtocol {
     }
 
     @Override
-    public Void enter(CharSequence userName, CharSequence ip) throws AvroRemoteException {
-        //TODO nakijken
-       /* switch (userName.toString().split("[0-9]")[0]) {
-            case "Light":
-                repdata.getConnectedLights().put(userName.toString(), ip);
+    public Void enter(CharSequence userName, CharSequence ip,CharSequence type) throws AvroRemoteException {
+        switch (type.toString()) {
+            case "light":
+                repdata.connectedLights.put(userName.toString(), ip);
                 break;
-            case "TS":
-                repdata.getConnectedTS().put(userName.toString(), ip);
+            case "temperature sensor":
+                repdata.connectedTS.put(userName.toString(), ip);
                 break;
-            case "Fridge":
-                repdata.getConnectedFridges().put(userName.toString(), ip);
+            case "fridge":
+                repdata.connectedFridges.put(userName.toString(), ip);
                 break;
-            case "User":
-                repdata.getConnectedUsers().put(userName.toString(), ip);
-                enterHouse(userName);
+            case "user":
+                repdata.connectedUsers.put(userName.toString(), ip);
+                repdata.userlocation.put(userName.toString(), false);
                 break;
-        }*/
+        }
         return null;
     }
 
     @Override
-    public Void leave(CharSequence userName) throws AvroRemoteException {
-        //TODO nakijken
-        /*switch (userName.toString().split("[0-9]")[0]) {
-            case "Light":
-                repdata.getConnectedLights().remove(userName.toString());
+    public Void leave(CharSequence userName,CharSequence type) throws AvroRemoteException {
+        switch (type.toString()) {
+            case "light":
+                repdata.connectedLights.remove(userName.toString());
                 break;
-            case "TS":
-                repdata.getConnectedTS().remove(userName.toString());
+            case "temperature sensor":
+                repdata.connectedTS.remove(userName.toString());
                 break;
-            case "Fridge":
-                repdata.getConnectedFridges().remove(userName.toString());
+            case "fridge":
+                repdata.connectedFridges.remove(userName.toString());
                 break;
-            case "User":
-                repdata.getConnectedUsers().remove(userName.toString());
-                repdata.getUserlocation().remove(userName.toString());
+            case "user":
+                repdata.connectedUsers.remove(userName.toString());
+                repdata.userlocation.remove(userName.toString());
                 break;
-        }*/
+        }
         return null;
     }
 
@@ -707,7 +705,15 @@ public class UserImpl implements UserProtocol {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            //TODO eventueel een aantal keren laten nakijken of server beschikbaar is
             connectToServer();
+            if(serverFound==false){
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         return null;
     }
