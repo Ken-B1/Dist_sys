@@ -51,10 +51,11 @@ public class ReplicationGenerator {
 		newData.setConnectedFridges(connectedFridges);
 		newData.setConnectedTS(connectedTS);
 		newData.setTemperatures(original.getTemperatures());
-		newData.setFirstNeighbour(original.getFirstNeighbour());
-		newData.setLastNeighbour(original.getLastNeighbour());
+		/*newData.setFirstNeighbour(original.getFirstNeighbour());
+		newData.setLastNeighbour(original.getLastNeighbour());*/
 		newData.setIdCounter(original.getIdCounter());
 		newData.setUserlocation(userlocation);
+		newData.setLastNeighbourId("");
 		return newData;
 	}
 }

@@ -216,9 +216,11 @@ public class FridgeImpl implements FridgeProtocol {
     }
 
 
-    public Void setNewServer(CharSequence serverIp) throws AvroRemoteException {
+    public void setNewServer(CharSequence serverIp) throws AvroRemoteException {
         // new ServerImpl(repdata);
+        System.out.println("got setNewServer");
         if (!isServer) {
+            System.out.println("creating new server");
             this.isServer = true;
             Executor executor = Executors.newSingleThreadExecutor();
             executor.execute(new Runnable() {
@@ -237,15 +239,15 @@ public class FridgeImpl implements FridgeProtocol {
                     connectToServer();
                 }
             });
+        } else {
+            System.out.println("I already am a server, calm down fam");
         }
-
-        return null;
     }
 
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
         System.out.println("received electionMessage");
-        this.heartbeat.setuserName("");
+        //this.heartbeat.setuserName("");
         int ownId = Integer.parseInt(id);
         int incId = Integer.parseInt(previousId.toString());
         String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");

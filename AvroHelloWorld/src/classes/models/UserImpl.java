@@ -56,7 +56,7 @@ public class UserImpl implements UserProtocol {
             //connectToServer();
 
             //Search for server before starting election to check if original server came back online
-           try {
+            try {
                 Thread.sleep(1000);
             } catch (Exception e) {
             }
@@ -521,33 +521,37 @@ public class UserImpl implements UserProtocol {
         return "Neighbour added to Fridge";
     }
 
-    public Void setNewServer(CharSequence serverIp) throws AvroRemoteException {
-        this.isServer = true;
-        Executor executor = Executors.newSingleThreadExecutor();
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                ServerImpl tempServer = new ServerImpl(repdata,id);
-                while (tempServer.isStayOpen()) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (Exception e) {
+    public void setNewServer(CharSequence serverIp) throws AvroRemoteException {
+        System.out.println("got setNewServer");
+        if (!isServer) {
+            System.out.println("creating new server");
+            this.isServer = true;
+            Executor executor = Executors.newSingleThreadExecutor();
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    ServerImpl tempServer = new ServerImpl(repdata, id);
+                    while (tempServer.isStayOpen()) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (Exception e) {
 
+                        }
                     }
+                    isServer = false;
+                    serverFound = false;
+                    connectToServer();
                 }
-                isServer = false;
-                serverFound = false;
-                connectToServer();
-            }
-        });
-
-        return null;
+            });
+        } else {
+            System.out.println("I already am a server, calm down fam");
+        }
     }
 
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
         System.out.println("received electionMessage");
-        this.heartbeat.setuserName("");
+        //this.heartbeat.setuserName("");
         //if (nextNeighbour.size() > 0) {
         int ownId = Integer.parseInt(id);
         int incId = Integer.parseInt(previousId.toString());
