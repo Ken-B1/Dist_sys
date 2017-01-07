@@ -122,7 +122,13 @@ public class FridgeImpl implements FridgeProtocol {
             if (inventory.get(i).toString().equals(item.toString())) {
                 inventory.remove(i);
                 if (inventory.size() == 0) {
-                    System.out.println(proxy.notifyUsersOfEmptyFridge(id));
+                    try {
+                        client = new SaslSocketTransceiver(serverAddress);
+                        proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+                        System.out.println(proxy.notifyUsersOfEmptyFridge(id));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
                 deletedItem = true;
             }
