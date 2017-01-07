@@ -7,7 +7,7 @@ package sourcefiles;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ReplicationData\",\"namespace\":\"sourcefiles\",\"fields\":[{\"name\":\"connectedUsers\",\"type\":{\"type\":\"map\",\"values\":\"string\"}},{\"name\":\"connectedLights\",\"type\":{\"type\":\"map\",\"values\":\"string\"}},{\"name\":\"connectedFridges\",\"type\":{\"type\":\"map\",\"values\":\"string\"}},{\"name\":\"connectedTS\",\"type\":{\"type\":\"map\",\"values\":\"string\"}},{\"name\":\"temperatures\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"TemperatureAggregate\",\"fields\":[{\"name\":\"counter\",\"type\":\"int\"},{\"name\":\"record\",\"type\":{\"type\":\"record\",\"name\":\"TemperatureRecord\",\"fields\":[{\"name\":\"time\",\"type\":\"string\"},{\"name\":\"temperature\",\"type\":\"double\"}]}}]}}},{\"name\":\"userlocation\",\"type\":{\"type\":\"map\",\"values\":\"boolean\"}},{\"name\":\"firstNeighbour\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"lastNeighbour\",\"type\":{\"type\":\"array\",\"items\":\"string\"}},{\"name\":\"idCounter\",\"type\":\"int\"}]}");
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"ReplicationData\",\"namespace\":\"sourcefiles\",\"fields\":[{\"name\":\"connectedUsers\",\"type\":{\"type\":\"map\",\"values\":\"string\"}},{\"name\":\"connectedLights\",\"type\":{\"type\":\"map\",\"values\":\"string\"}},{\"name\":\"connectedFridges\",\"type\":{\"type\":\"map\",\"values\":\"string\"}},{\"name\":\"connectedTS\",\"type\":{\"type\":\"map\",\"values\":\"string\"}},{\"name\":\"temperatures\",\"type\":{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"TemperatureAggregate\",\"fields\":[{\"name\":\"counter\",\"type\":\"int\"},{\"name\":\"record\",\"type\":{\"type\":\"record\",\"name\":\"TemperatureRecord\",\"fields\":[{\"name\":\"time\",\"type\":\"string\"},{\"name\":\"temperature\",\"type\":\"double\"}]}}]}}},{\"name\":\"userlocation\",\"type\":{\"type\":\"map\",\"values\":\"boolean\"}},{\"name\":\"neighbourList\",\"type\":{\"type\":\"map\",\"values\":{\"type\":\"record\",\"name\":\"NeighbourData\",\"fields\":[{\"name\":\"ip\",\"type\":\"string\"},{\"name\":\"type\",\"type\":\"string\"}]}}},{\"name\":\"idCounter\",\"type\":\"int\"},{\"name\":\"lastNeighbourId\",\"type\":\"string\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedUsers;
   @Deprecated public java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedLights;
@@ -15,9 +15,9 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
   @Deprecated public java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedTS;
   @Deprecated public java.util.List<sourcefiles.TemperatureAggregate> temperatures;
   @Deprecated public java.util.Map<java.lang.CharSequence,java.lang.Boolean> userlocation;
-  @Deprecated public java.util.List<java.lang.CharSequence> firstNeighbour;
-  @Deprecated public java.util.List<java.lang.CharSequence> lastNeighbour;
+  @Deprecated public java.util.Map<java.lang.CharSequence,sourcefiles.NeighbourData> neighbourList;
   @Deprecated public int idCounter;
+  @Deprecated public java.lang.CharSequence lastNeighbourId;
 
   /**
    * Default constructor.  Note that this does not initialize fields
@@ -29,16 +29,16 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
   /**
    * All-args constructor.
    */
-  public ReplicationData(java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedUsers, java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedLights, java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedFridges, java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedTS, java.util.List<sourcefiles.TemperatureAggregate> temperatures, java.util.Map<java.lang.CharSequence,java.lang.Boolean> userlocation, java.util.List<java.lang.CharSequence> firstNeighbour, java.util.List<java.lang.CharSequence> lastNeighbour, java.lang.Integer idCounter) {
+  public ReplicationData(java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedUsers, java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedLights, java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedFridges, java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedTS, java.util.List<sourcefiles.TemperatureAggregate> temperatures, java.util.Map<java.lang.CharSequence,java.lang.Boolean> userlocation, java.util.Map<java.lang.CharSequence,sourcefiles.NeighbourData> neighbourList, java.lang.Integer idCounter, java.lang.CharSequence lastNeighbourId) {
     this.connectedUsers = connectedUsers;
     this.connectedLights = connectedLights;
     this.connectedFridges = connectedFridges;
     this.connectedTS = connectedTS;
     this.temperatures = temperatures;
     this.userlocation = userlocation;
-    this.firstNeighbour = firstNeighbour;
-    this.lastNeighbour = lastNeighbour;
+    this.neighbourList = neighbourList;
     this.idCounter = idCounter;
+    this.lastNeighbourId = lastNeighbourId;
   }
 
   public org.apache.avro.Schema getSchema() { return SCHEMA$; }
@@ -51,9 +51,9 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
     case 3: return connectedTS;
     case 4: return temperatures;
     case 5: return userlocation;
-    case 6: return firstNeighbour;
-    case 7: return lastNeighbour;
-    case 8: return idCounter;
+    case 6: return neighbourList;
+    case 7: return idCounter;
+    case 8: return lastNeighbourId;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -67,9 +67,9 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
     case 3: connectedTS = (java.util.Map<java.lang.CharSequence,java.lang.CharSequence>)value$; break;
     case 4: temperatures = (java.util.List<sourcefiles.TemperatureAggregate>)value$; break;
     case 5: userlocation = (java.util.Map<java.lang.CharSequence,java.lang.Boolean>)value$; break;
-    case 6: firstNeighbour = (java.util.List<java.lang.CharSequence>)value$; break;
-    case 7: lastNeighbour = (java.util.List<java.lang.CharSequence>)value$; break;
-    case 8: idCounter = (java.lang.Integer)value$; break;
+    case 6: neighbourList = (java.util.Map<java.lang.CharSequence,sourcefiles.NeighbourData>)value$; break;
+    case 7: idCounter = (java.lang.Integer)value$; break;
+    case 8: lastNeighbourId = (java.lang.CharSequence)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -165,33 +165,18 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
   }
 
   /**
-   * Gets the value of the 'firstNeighbour' field.
+   * Gets the value of the 'neighbourList' field.
    */
-  public java.util.List<java.lang.CharSequence> getFirstNeighbour() {
-    return firstNeighbour;
+  public java.util.Map<java.lang.CharSequence,sourcefiles.NeighbourData> getNeighbourList() {
+    return neighbourList;
   }
 
   /**
-   * Sets the value of the 'firstNeighbour' field.
+   * Sets the value of the 'neighbourList' field.
    * @param value the value to set.
    */
-  public void setFirstNeighbour(java.util.List<java.lang.CharSequence> value) {
-    this.firstNeighbour = value;
-  }
-
-  /**
-   * Gets the value of the 'lastNeighbour' field.
-   */
-  public java.util.List<java.lang.CharSequence> getLastNeighbour() {
-    return lastNeighbour;
-  }
-
-  /**
-   * Sets the value of the 'lastNeighbour' field.
-   * @param value the value to set.
-   */
-  public void setLastNeighbour(java.util.List<java.lang.CharSequence> value) {
-    this.lastNeighbour = value;
+  public void setNeighbourList(java.util.Map<java.lang.CharSequence,sourcefiles.NeighbourData> value) {
+    this.neighbourList = value;
   }
 
   /**
@@ -207,6 +192,21 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
    */
   public void setIdCounter(java.lang.Integer value) {
     this.idCounter = value;
+  }
+
+  /**
+   * Gets the value of the 'lastNeighbourId' field.
+   */
+  public java.lang.CharSequence getLastNeighbourId() {
+    return lastNeighbourId;
+  }
+
+  /**
+   * Sets the value of the 'lastNeighbourId' field.
+   * @param value the value to set.
+   */
+  public void setLastNeighbourId(java.lang.CharSequence value) {
+    this.lastNeighbourId = value;
   }
 
   /** Creates a new ReplicationData RecordBuilder */
@@ -236,9 +236,9 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
     private java.util.Map<java.lang.CharSequence,java.lang.CharSequence> connectedTS;
     private java.util.List<sourcefiles.TemperatureAggregate> temperatures;
     private java.util.Map<java.lang.CharSequence,java.lang.Boolean> userlocation;
-    private java.util.List<java.lang.CharSequence> firstNeighbour;
-    private java.util.List<java.lang.CharSequence> lastNeighbour;
+    private java.util.Map<java.lang.CharSequence,sourcefiles.NeighbourData> neighbourList;
     private int idCounter;
+    private java.lang.CharSequence lastNeighbourId;
 
     /** Creates a new Builder */
     private Builder() {
@@ -272,16 +272,16 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
         this.userlocation = data().deepCopy(fields()[5].schema(), other.userlocation);
         fieldSetFlags()[5] = true;
       }
-      if (isValidValue(fields()[6], other.firstNeighbour)) {
-        this.firstNeighbour = data().deepCopy(fields()[6].schema(), other.firstNeighbour);
+      if (isValidValue(fields()[6], other.neighbourList)) {
+        this.neighbourList = data().deepCopy(fields()[6].schema(), other.neighbourList);
         fieldSetFlags()[6] = true;
       }
-      if (isValidValue(fields()[7], other.lastNeighbour)) {
-        this.lastNeighbour = data().deepCopy(fields()[7].schema(), other.lastNeighbour);
+      if (isValidValue(fields()[7], other.idCounter)) {
+        this.idCounter = data().deepCopy(fields()[7].schema(), other.idCounter);
         fieldSetFlags()[7] = true;
       }
-      if (isValidValue(fields()[8], other.idCounter)) {
-        this.idCounter = data().deepCopy(fields()[8].schema(), other.idCounter);
+      if (isValidValue(fields()[8], other.lastNeighbourId)) {
+        this.lastNeighbourId = data().deepCopy(fields()[8].schema(), other.lastNeighbourId);
         fieldSetFlags()[8] = true;
       }
     }
@@ -313,16 +313,16 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
         this.userlocation = data().deepCopy(fields()[5].schema(), other.userlocation);
         fieldSetFlags()[5] = true;
       }
-      if (isValidValue(fields()[6], other.firstNeighbour)) {
-        this.firstNeighbour = data().deepCopy(fields()[6].schema(), other.firstNeighbour);
+      if (isValidValue(fields()[6], other.neighbourList)) {
+        this.neighbourList = data().deepCopy(fields()[6].schema(), other.neighbourList);
         fieldSetFlags()[6] = true;
       }
-      if (isValidValue(fields()[7], other.lastNeighbour)) {
-        this.lastNeighbour = data().deepCopy(fields()[7].schema(), other.lastNeighbour);
+      if (isValidValue(fields()[7], other.idCounter)) {
+        this.idCounter = data().deepCopy(fields()[7].schema(), other.idCounter);
         fieldSetFlags()[7] = true;
       }
-      if (isValidValue(fields()[8], other.idCounter)) {
-        this.idCounter = data().deepCopy(fields()[8].schema(), other.idCounter);
+      if (isValidValue(fields()[8], other.lastNeighbourId)) {
+        this.lastNeighbourId = data().deepCopy(fields()[8].schema(), other.lastNeighbourId);
         fieldSetFlags()[8] = true;
       }
     }
@@ -477,53 +477,28 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
       return this;
     }
 
-    /** Gets the value of the 'firstNeighbour' field */
-    public java.util.List<java.lang.CharSequence> getFirstNeighbour() {
-      return firstNeighbour;
+    /** Gets the value of the 'neighbourList' field */
+    public java.util.Map<java.lang.CharSequence,sourcefiles.NeighbourData> getNeighbourList() {
+      return neighbourList;
     }
     
-    /** Sets the value of the 'firstNeighbour' field */
-    public sourcefiles.ReplicationData.Builder setFirstNeighbour(java.util.List<java.lang.CharSequence> value) {
+    /** Sets the value of the 'neighbourList' field */
+    public sourcefiles.ReplicationData.Builder setNeighbourList(java.util.Map<java.lang.CharSequence,sourcefiles.NeighbourData> value) {
       validate(fields()[6], value);
-      this.firstNeighbour = value;
+      this.neighbourList = value;
       fieldSetFlags()[6] = true;
       return this; 
     }
     
-    /** Checks whether the 'firstNeighbour' field has been set */
-    public boolean hasFirstNeighbour() {
+    /** Checks whether the 'neighbourList' field has been set */
+    public boolean hasNeighbourList() {
       return fieldSetFlags()[6];
     }
     
-    /** Clears the value of the 'firstNeighbour' field */
-    public sourcefiles.ReplicationData.Builder clearFirstNeighbour() {
-      firstNeighbour = null;
+    /** Clears the value of the 'neighbourList' field */
+    public sourcefiles.ReplicationData.Builder clearNeighbourList() {
+      neighbourList = null;
       fieldSetFlags()[6] = false;
-      return this;
-    }
-
-    /** Gets the value of the 'lastNeighbour' field */
-    public java.util.List<java.lang.CharSequence> getLastNeighbour() {
-      return lastNeighbour;
-    }
-    
-    /** Sets the value of the 'lastNeighbour' field */
-    public sourcefiles.ReplicationData.Builder setLastNeighbour(java.util.List<java.lang.CharSequence> value) {
-      validate(fields()[7], value);
-      this.lastNeighbour = value;
-      fieldSetFlags()[7] = true;
-      return this; 
-    }
-    
-    /** Checks whether the 'lastNeighbour' field has been set */
-    public boolean hasLastNeighbour() {
-      return fieldSetFlags()[7];
-    }
-    
-    /** Clears the value of the 'lastNeighbour' field */
-    public sourcefiles.ReplicationData.Builder clearLastNeighbour() {
-      lastNeighbour = null;
-      fieldSetFlags()[7] = false;
       return this;
     }
 
@@ -534,19 +509,44 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
     
     /** Sets the value of the 'idCounter' field */
     public sourcefiles.ReplicationData.Builder setIdCounter(int value) {
-      validate(fields()[8], value);
+      validate(fields()[7], value);
       this.idCounter = value;
-      fieldSetFlags()[8] = true;
+      fieldSetFlags()[7] = true;
       return this; 
     }
     
     /** Checks whether the 'idCounter' field has been set */
     public boolean hasIdCounter() {
-      return fieldSetFlags()[8];
+      return fieldSetFlags()[7];
     }
     
     /** Clears the value of the 'idCounter' field */
     public sourcefiles.ReplicationData.Builder clearIdCounter() {
+      fieldSetFlags()[7] = false;
+      return this;
+    }
+
+    /** Gets the value of the 'lastNeighbourId' field */
+    public java.lang.CharSequence getLastNeighbourId() {
+      return lastNeighbourId;
+    }
+    
+    /** Sets the value of the 'lastNeighbourId' field */
+    public sourcefiles.ReplicationData.Builder setLastNeighbourId(java.lang.CharSequence value) {
+      validate(fields()[8], value);
+      this.lastNeighbourId = value;
+      fieldSetFlags()[8] = true;
+      return this; 
+    }
+    
+    /** Checks whether the 'lastNeighbourId' field has been set */
+    public boolean hasLastNeighbourId() {
+      return fieldSetFlags()[8];
+    }
+    
+    /** Clears the value of the 'lastNeighbourId' field */
+    public sourcefiles.ReplicationData.Builder clearLastNeighbourId() {
+      lastNeighbourId = null;
       fieldSetFlags()[8] = false;
       return this;
     }
@@ -561,9 +561,9 @@ public class ReplicationData extends org.apache.avro.specific.SpecificRecordBase
         record.connectedTS = fieldSetFlags()[3] ? this.connectedTS : (java.util.Map<java.lang.CharSequence,java.lang.CharSequence>) defaultValue(fields()[3]);
         record.temperatures = fieldSetFlags()[4] ? this.temperatures : (java.util.List<sourcefiles.TemperatureAggregate>) defaultValue(fields()[4]);
         record.userlocation = fieldSetFlags()[5] ? this.userlocation : (java.util.Map<java.lang.CharSequence,java.lang.Boolean>) defaultValue(fields()[5]);
-        record.firstNeighbour = fieldSetFlags()[6] ? this.firstNeighbour : (java.util.List<java.lang.CharSequence>) defaultValue(fields()[6]);
-        record.lastNeighbour = fieldSetFlags()[7] ? this.lastNeighbour : (java.util.List<java.lang.CharSequence>) defaultValue(fields()[7]);
-        record.idCounter = fieldSetFlags()[8] ? this.idCounter : (java.lang.Integer) defaultValue(fields()[8]);
+        record.neighbourList = fieldSetFlags()[6] ? this.neighbourList : (java.util.Map<java.lang.CharSequence,sourcefiles.NeighbourData>) defaultValue(fields()[6]);
+        record.idCounter = fieldSetFlags()[7] ? this.idCounter : (java.lang.Integer) defaultValue(fields()[7]);
+        record.lastNeighbourId = fieldSetFlags()[8] ? this.lastNeighbourId : (java.lang.CharSequence) defaultValue(fields()[8]);
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);

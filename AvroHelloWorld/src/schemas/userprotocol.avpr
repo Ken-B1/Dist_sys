@@ -9,7 +9,11 @@
     {"name": "TemperatureAggregate", "type": "record", "fields": [
      {"name": "counter", "type": "int"}, 
      {"name": "record", "type": "TemperatureRecord"}]
-    }],
+    },
+     {"name": "NeighbourData", "type": "record", "fields": [
+             {"name": "ip", "type": "string"},
+             {"name": "type", "type": "string"}]
+     }],
     
  "messages": {
  	"notifyOfEmptyFridge": {
@@ -40,32 +44,28 @@
      "request": [{"name": "TemperatureAggregate", "type": "TemperatureAggregate"}], 			 
      "response": "null"
     },
-    "addNeighbour": {
-        "request": [{"name":"neighbourId","type":"string"},{"name":"neighbourIp","type":"string"},{"name":"neighbourType","type":"string"},{"name":"isNextNeighbour","type":"boolean"}],
-        "response": "string"
-    },
     "sendElectionMessage": {
-        "request": [{"name":"previousId","type":"string"}],
-        "response": "null"
+       "request": [{"name":"previousId","type":"string"}],
+       "response": "null"
     },
     "sendElectedMessage": {
-        "request": [{"name":"electedId","type":"string"},{"name":"electedIp","type":"string"}],
-        "response": "null"
+       "request": [{"name":"electedId","type":"string"},{"name":"electedIp","type":"string"}],
+       "response": "null"
     },
-    "getNeighbours": {
-        "request": [],
-        "response": {"type": "array", "items": "string"}
+    "getNeighbour": {
+       "request": [],
+       "response": "NeighbourData"
     },
-    "clearNeighbours": {
-        "request": [],
-        "response": "null"
+    "clearNeighbour": {
+       "request": [],
+       "response": "null"
     },
     "addNeighbour": {
-        "request": [{"name":"neighbourId","type":"string"},{"name":"neighbourIp","type":"string"},{"name":"neighbourType","type":"string"},{"name":"isNextNeighbour","type":"boolean"}],
-        "response": "string"
+       "request": [{"name":"neighbourIp","type":"string"},{"name":"neighbourType","type":"string"}],
+       "response": "string"
     },
     "updateRepDataNeighbours": {
-        "request": [{"name":"firstNeighbour","type":{"type":"array","items":"string"}},{"name":"lastNeighbour","type":{"type":"array","items":"string"}}],
+        "request": [{"name":"neighbourList","type":{"type":"map","values":"NeighbourData"}},{"name":"lastNeighbourId","type":"string"}],
         "response": "string"
     },
     "updateRepDataIdCounter": {

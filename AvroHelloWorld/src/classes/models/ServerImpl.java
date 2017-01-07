@@ -35,52 +35,54 @@ public class ServerImpl implements ServerProtocol {
     private Map<CharSequence, CharSequence> connectedTS = new HashMap<CharSequence, CharSequence>();
     private ArrayList<TemperatureMeasurementRecord> temperatures = new ArrayList<TemperatureMeasurementRecord>();
     private Map<CharSequence, Boolean> userlocation = new HashMap<CharSequence, Boolean>();    //Maps a user to a location (1 = outside, 0 = inside)
-   
+
     ServerHeartbeatMaintainer heartbeat = new ServerHeartbeatMaintainer(this);
     Thread heartbeatThread = new Thread(heartbeat);
     NetworkDiscoveryServer NDS;
     Thread NDSThread;
-    
+
     private boolean stayOpen = true;
     SaslSocketServer server;
     private int idCounter;
-    private List<String> firstNeighbour;
-    private List<String> lastNeighbour;
+    Map<CharSequence, NeighbourData> neighbourList;
+    private String lastNeighbourId;
+    private NeighbourData lastNeighbourInfo;
     Map<String, LinkedList<String>> fridgeAccessQueue;
     //Variable to save lightstates when everyone leaves the house
-  	private Map<CharSequence, Boolean> lightsave = new HashMap<CharSequence, Boolean>();
+    private Map<CharSequence, Boolean> lightsave = new HashMap<CharSequence, Boolean>();
 
     public ServerImpl() {
-        firstNeighbour = new ArrayList<String>();
-        lastNeighbour = new ArrayList<String>();
+        lastNeighbourId = "0";
+        lastNeighbourInfo = new NeighbourData("0.0.0.0", "none");
+        neighbourList = new HashMap<>();
         fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
-    	//Check if there is already a server running 
-    	try{
-    		NetworkDiscoveryClient NDC = new NetworkDiscoveryClient();
-    		InetSocketAddress serverAddress = NDC.findServer();
-    		//Server has been found, so close it, take over replication and start myself
-    		Transceiver client = new SaslSocketTransceiver(serverAddress);
-			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-			ReplicationData repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
-			this.setReplication(repdata);
-			boolean success = proxy.closeServer();
-			if(!success){
-				System.out.println("Something went wrong while trying to close the old server");
-				client.close();
-				return;
-			}
-			client.close();
-			Thread.sleep(200);	//Sleep for a short period to make sure the old server has been closed
-    	} catch(IOException e){
-    		System.out.println("No server has been found, so we are safe to start.");
-    	} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-		}
+        //Check if there is already a server running
         try {
-        	InetAddress localaddress = LANIp.getAddress();
-        	ServerSocket s1 = new ServerSocket(0);
-			int portnumber = s1.getLocalPort();
-			s1.close();
+            NetworkDiscoveryClient NDC = new NetworkDiscoveryClient();
+            InetSocketAddress serverAddress = NDC.findServer();
+            //Server has been found, so close it, take over replication and start myself
+            Transceiver client = new SaslSocketTransceiver(serverAddress);
+            ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+            ReplicationData repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
+            this.setReplication(repdata,"");
+            boolean success = proxy.closeServer();
+            if (!success) {
+                System.out.println("Something went wrong while trying to close the old server");
+                client.close();
+                return;
+            }
+            client.close();
+            Thread.sleep(200);    //Sleep for a short period to make sure the old server has been closed
+        } catch (IOException e) {
+            System.out.println("No server has been found, so we are safe to start.");
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+        }
+        try {
+            InetAddress localaddress = LANIp.getAddress();
+            ServerSocket s1 = new ServerSocket(0);
+            int portnumber = s1.getLocalPort();
+            s1.close();
             NDS = new NetworkDiscoveryServer(portnumber);
             NDSThread = new Thread(NDS);
             NDSThread.start();
@@ -95,16 +97,16 @@ public class ServerImpl implements ServerProtocol {
         }
     }
 
-    public ServerImpl(ReplicationData data) {
+    public ServerImpl(ReplicationData data,String oldClientId) {
         System.out.println("Booting server");
-        this.setReplication(data);
+        this.setReplication(data,oldClientId);
 
         try {
-        	InetAddress localaddress = LANIp.getAddress();
-        	ServerSocket s1 = new ServerSocket(0);
-			int portnumber = s1.getLocalPort();
-			s1.close();
-			NDS = new NetworkDiscoveryServer(portnumber);
+            InetAddress localaddress = LANIp.getAddress();
+            ServerSocket s1 = new ServerSocket(0);
+            int portnumber = s1.getLocalPort();
+            s1.close();
+            NDS = new NetworkDiscoveryServer(portnumber);
             NDSThread = new Thread(NDS);
             NDSThread.start();
             heartbeatThread.start();
@@ -160,12 +162,6 @@ public class ServerImpl implements ServerProtocol {
         }
         idCounter++;
 
-        List<CharSequence> firstNeighbourCharSequence = new ArrayList<CharSequence>();
-        List<CharSequence> lastNeighbourCharSequence = new ArrayList<CharSequence>();
-
-        firstNeighbourCharSequence.addAll(firstNeighbour);
-        lastNeighbourCharSequence.addAll(lastNeighbour);
-
         //Send update to all clients/fridges
         for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet()) {
             /*if (entry.getKey() == name) {
@@ -175,9 +171,9 @@ public class ServerImpl implements ServerProtocol {
                 String[] userValue = entry.getValue().toString().split(",");
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
                 UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                proxy.enter(name, ip,type);
+                proxy.enter(name, ip, type);
                 proxy.updateRepDataIdCounter(idCounter);
-                System.out.println(proxy.updateRepDataNeighbours(firstNeighbourCharSequence, lastNeighbourCharSequence));
+                proxy.updateRepDataNeighbours(neighbourList, lastNeighbourId);
                 client.close();
             } catch (NumberFormatException e) {
                 e.printStackTrace();
@@ -197,9 +193,9 @@ public class ServerImpl implements ServerProtocol {
                 System.out.println("connecting to fridge at ip: " + userValue[0] + " and at port: " + userValue[1]);
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
                 FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                proxy.enter(name, ip,type);
+                proxy.enter(name, ip, type);
                 proxy.updateRepDataIdCounter(idCounter);
-                System.out.println(proxy.updateRepDataNeighbours(firstNeighbourCharSequence, lastNeighbourCharSequence));
+                proxy.updateRepDataNeighbours(neighbourList, lastNeighbourId);
                 client.close();
             } catch (NumberFormatException e) {
                 e.printStackTrace();
@@ -215,13 +211,12 @@ public class ServerImpl implements ServerProtocol {
     @Override
     public CharSequence leave(CharSequence userName) throws AvroRemoteException {
         System.out.println("Removing: " + userName);
-        List<CharSequence> neighbours = new ArrayList<CharSequence>();
         CharSequence type = "";
 
         for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()) {
             if (entry.getKey().toString().equalsIgnoreCase(userName.toString())) {
                 connectedLights.remove(userName);
-                type="light";
+                type = "light";
                 return "Light lost connection";
             }
         }
@@ -229,165 +224,60 @@ public class ServerImpl implements ServerProtocol {
         for (Entry<CharSequence, CharSequence> entry : connectedTS.entrySet()) {
             if (entry.getKey().toString().equalsIgnoreCase(userName.toString())) {
                 connectedTS.remove(userName);
-                type="temperature sensor";
+                type = "temperature sensor";
                 return "Temperature sensor lost connection";
             }
         }
 
+        String removedClientIp = "";
+        boolean removeFridge = false;
+
         for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet()) {
             if (entry.getKey().toString().equalsIgnoreCase(userName.toString())) {
-                String[] fridgeValue = entry.getValue().toString().split(",");
-                try {
-                    Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(fridgeValue[0]), Integer.parseInt(fridgeValue[1])));
-                    FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                    neighbours = fridgeProxy.getNeighbours();
-                    client.close();
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                connectedFridges.remove(userName);
-                fridgeAccessQueue.remove(userName.toString());
-                type="fridge";
+                removeFridge = true;
             }
         }
 
+        if (removeFridge) {
+            System.out.println("disconnected client was fridge");
+            removedClientIp = connectedFridges.get(userName).toString();
+            connectedFridges.remove(userName);
+            fridgeAccessQueue.remove(userName.toString());
+            type = "fridge";
+        }
+
+
+        boolean removeUser = false;
         for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet()) {
             if (entry.getKey().toString().equalsIgnoreCase(userName.toString())) {
-                String[] userValue = entry.getValue().toString().split(",");
-                try {
-                    Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
-                    UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                    neighbours = userProxy.getNeighbours();
-                    client.close();
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                connectedUsers.remove(userName);
-                type="user";
+                removeUser = true;
             }
         }
 
-        if (lastNeighbour.size() == 0) {
-            firstNeighbour.clear();
-        } else {
-            if (firstNeighbour.get(0).equalsIgnoreCase(userName.toString())) {
-                if (lastNeighbour.get(0).equalsIgnoreCase(neighbours.get(0).toString()) && lastNeighbour.get(0).equalsIgnoreCase(neighbours.get(3).toString())) {
-                    firstNeighbour.clear();
-                    try {
-                        String[] firstNeighbourIpValue = firstNeighbour.get(1).split(",");
-                        Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(firstNeighbourIpValue[0]), Integer.parseInt(firstNeighbourIpValue[1])));
+        if (removeUser) {
+            System.out.println("disconnected client was user");
+            removedClientIp = connectedUsers.get(userName).toString();
+            connectedUsers.remove(userName);
+            type = "user";
+        }
 
-                        switch (firstNeighbour.get(2)) {
-                            case "fridge":
-                                FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                                fridgeProxy.clearNeighbours();
-                                break;
-                            case "user":
-                                UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                                userProxy.clearNeighbours();
-                                break;
-                        }
-                        client.close();
-                    } catch (UnknownHostException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    firstNeighbour.addAll(lastNeighbour);
-                    lastNeighbour.clear();
-                } else {
-                    firstNeighbour.clear();
-                    firstNeighbour.add(0, neighbours.get(3).toString());
-                    firstNeighbour.add(1, neighbours.get(4).toString());
-                    firstNeighbour.add(2, neighbours.get(5).toString());
-                }
-            }
+        NeighbourData removedNeighbourData = neighbourList.get(userName);
+        String previousNeighbourId = "";
+        NeighbourData oldData = new NeighbourData();
 
-            if (lastNeighbour.get(0).equalsIgnoreCase(userName.toString())) {
-                if (firstNeighbour.get(0).equalsIgnoreCase(neighbours.get(0).toString()) && firstNeighbour.get(0).equalsIgnoreCase(neighbours.get(3).toString())) {
-                    try {
-                        String[] firstNeighbourIpValie = firstNeighbour.get(1).split(",");
-                        Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(firstNeighbourIpValie[0]), Integer.parseInt(firstNeighbourIpValie[1])));
-
-                        switch (firstNeighbour.get(2)) {
-                            case "fridge":
-                                FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                                fridgeProxy.clearNeighbours();
-                                break;
-                            case "user":
-                                UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                                userProxy.clearNeighbours();
-                                break;
-                        }
-                        client.close();
-                    } catch (UnknownHostException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    lastNeighbour.clear();
-                } else {
-                    lastNeighbour.clear();
-                    lastNeighbour.add(0, neighbours.get(0).toString());
-                    lastNeighbour.add(1, neighbours.get(1).toString());
-                    lastNeighbour.add(2, neighbours.get(2).toString());
-                }
-            }
-
-            //TODO eerste buur van te verwijderen client aan de laatste hangen
-            try {
-                String[] firstNeighbourValue = neighbours.get(1).toString().split(",");
-                Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(firstNeighbourValue[0]), Integer.parseInt(firstNeighbourValue[1])));
-
-                switch (neighbours.get(2).toString()) {
-                    case "fridge":
-                        FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                        fridgeProxy.addNeighbour(neighbours.get(3), neighbours.get(4), neighbours.get(5), true);
-                        break;
-                    case "user":
-                        UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                        userProxy.addNeighbour(neighbours.get(3), neighbours.get(4), neighbours.get(5), true);
-                        break;
-                }
-                client.close();
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            //TODO laatste buur van te verwijderen client aan de eerste hangen
-            try {
-                String[] lastNeighbourValue = neighbours.get(4).toString().split(",");
-                Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lastNeighbourValue[0]), Integer.parseInt(lastNeighbourValue[1])));
-
-                switch (neighbours.get(5).toString()) {
-                    case "fridge":
-                        FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                        fridgeProxy.addNeighbour(neighbours.get(0), neighbours.get(1), neighbours.get(2), false);
-                        break;
-                    case "user":
-                        UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                        userProxy.addNeighbour(neighbours.get(0), neighbours.get(1), neighbours.get(2), false);
-                        break;
-                }
-                client.close();
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+        for (Entry<CharSequence, NeighbourData> entry : neighbourList.entrySet()) {
+            if (entry.getValue().getIp().toString().equalsIgnoreCase(removedClientIp)) {
+                System.out.println("We found the client connected to the deleted one");
+                previousNeighbourId = entry.getKey().toString();
+                oldData = entry.getValue();
             }
         }
 
-        List<CharSequence> firstNeighbourCharSequence = new ArrayList<CharSequence>();
-        List<CharSequence> lastNeighbourCharSequence = new ArrayList<CharSequence>();
+        neighbourList.remove(userName);
 
-        firstNeighbourCharSequence.addAll(firstNeighbour);
-        lastNeighbourCharSequence.addAll(lastNeighbour);
+        if (previousNeighbourId.length() > 0) {
+            neighbourList.replace(previousNeighbourId, oldData, removedNeighbourData);
+        }
 
         //TODO zien om dit te mergen met for loops hierboven
         //Send update to all clients/fridges
@@ -396,8 +286,11 @@ public class ServerImpl implements ServerProtocol {
                 String[] userValue = entry.getValue().toString().split(",");
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
                 FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                proxy.leave(userName,type);
-                proxy.updateRepDataNeighbours(firstNeighbourCharSequence, lastNeighbourCharSequence);
+                proxy.leave(userName, type);
+                proxy.updateRepDataNeighbours(neighbourList, lastNeighbourId);
+                if (entry.getKey().toString().equalsIgnoreCase(previousNeighbourId)) {
+                    proxy.addNeighbour(removedNeighbourData.getIp(), removedNeighbourData.getType());
+                }
                 client.close();
             } catch (NumberFormatException e) {
                 e.printStackTrace();
@@ -412,8 +305,11 @@ public class ServerImpl implements ServerProtocol {
                 String[] userValue = entry.getValue().toString().split(",");
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
                 UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                proxy.leave(userName,type);
-                proxy.updateRepDataNeighbours(firstNeighbourCharSequence, lastNeighbourCharSequence);
+                proxy.leave(userName, type);
+                proxy.updateRepDataNeighbours(neighbourList, lastNeighbourId);
+                if (entry.getKey().toString().equalsIgnoreCase(previousNeighbourId)) {
+                    proxy.addNeighbour(removedNeighbourData.getIp(), removedNeighbourData.getType());
+                }
                 client.close();
             } catch (NumberFormatException e) {
                 e.printStackTrace();
@@ -502,11 +398,12 @@ public class ServerImpl implements ServerProtocol {
 
         } catch (AvroRemoteException e) {
             System.err.println("Error joining");
-        } catch (UnknownHostException e) {;
+        } catch (UnknownHostException e) {
+            ;
         } catch (IOException e) {
-        } catch (NullPointerException e){
-        	//The requested light doesnt exist
-        	return "That light doesn't exist";
+        } catch (NullPointerException e) {
+            //The requested light doesnt exist
+            return "That light doesn't exist";
         }
         if (status) {
             return lightName + " is now on";
@@ -518,7 +415,7 @@ public class ServerImpl implements ServerProtocol {
     @Override
     public int showCurrentHouseTemp() throws AvroRemoteException {
         if (temperatures.isEmpty()) {
-       		throw new AvroRemoteException("No temperatures found");
+            throw new AvroRemoteException("No temperatures found");
         }
         return (int) temperatures.get(temperatures.size() - 1).record.getTemperature().intValue();
     }
@@ -672,31 +569,31 @@ public class ServerImpl implements ServerProtocol {
             throw new AvroRuntimeException("User hasnt joined the system yet");
         }
         boolean checkIfFirst = true;
-		for(Entry<CharSequence, Boolean> entry : userlocation.entrySet()){
-			if(!entry.getValue()){
-				checkIfFirst = false;
-			}
-		}
-		if(checkIfFirst){
-			//First user to enter the house so lights should be restored
-			for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()){
-				try {
-					String[] lightValue = entry.getValue().toString().split(",");
-					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
-					LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
-					proxy.setState(lightsave.get(entry.getKey()));
-					client.close();
-				} catch (AvroRemoteException e) {
-					System.err.println("Error joining");
-					e.printStackTrace(System.err);
-					System.exit(1);
-				} catch (UnknownHostException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
+        for (Entry<CharSequence, Boolean> entry : userlocation.entrySet()) {
+            if (!entry.getValue()) {
+                checkIfFirst = false;
+            }
+        }
+        if (checkIfFirst) {
+            //First user to enter the house so lights should be restored
+            for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()) {
+                try {
+                    String[] lightValue = entry.getValue().toString().split(",");
+                    Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
+                    LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
+                    proxy.setState(lightsave.get(entry.getKey()));
+                    client.close();
+                } catch (AvroRemoteException e) {
+                    System.err.println("Error joining");
+                    e.printStackTrace(System.err);
+                    System.exit(1);
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
         userlocation.put(userName.toString(), false);
         notifyUsers(userName, " entered ");
         return true;
@@ -709,35 +606,35 @@ public class ServerImpl implements ServerProtocol {
         }
         userlocation.put(userName.toString(), true);
         boolean checkIfLast = true;
-		for(Entry<CharSequence, Boolean> entry : userlocation.entrySet()){
-			if(!entry.getValue()){
-				checkIfLast = false;
-			}
-		}
-		if(checkIfLast){
-			System.out.println("test");
-			//Save status of lights and turn them all off
-			for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()){
-				try {
-					String[] lightValue = entry.getValue().toString().split(",");
-					Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
-					LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
-					boolean status = proxy.getState();
-					proxy.setState(false);
-					lightsave.put(entry.getKey(), status);
-					client.close();
-					
-				} catch (AvroRemoteException e) {
-					System.err.println("Error joining");
-					e.printStackTrace(System.err);
-					System.exit(1);
-				} catch (UnknownHostException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
+        for (Entry<CharSequence, Boolean> entry : userlocation.entrySet()) {
+            if (!entry.getValue()) {
+                checkIfLast = false;
+            }
+        }
+        if (checkIfLast) {
+            System.out.println("test");
+            //Save status of lights and turn them all off
+            for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()) {
+                try {
+                    String[] lightValue = entry.getValue().toString().split(",");
+                    Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(lightValue[0]), Integer.parseInt(lightValue[1])));
+                    LightProtocol proxy = (LightProtocol) SpecificRequestor.getClient(LightProtocol.class, client);
+                    boolean status = proxy.getState();
+                    proxy.setState(false);
+                    lightsave.put(entry.getKey(), status);
+                    client.close();
+
+                } catch (AvroRemoteException e) {
+                    System.err.println("Error joining");
+                    e.printStackTrace(System.err);
+                    System.exit(1);
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
         notifyUsers(userName, " left ");
         return true;
     }
@@ -798,13 +695,7 @@ public class ServerImpl implements ServerProtocol {
         }
         System.out.println(temp.size());
 
-        List<CharSequence> firstNeighbourCharSequence = new ArrayList<CharSequence>();
-        List<CharSequence> lastNeighbourCharSequence = new ArrayList<CharSequence>();
-
-        firstNeighbourCharSequence.addAll(firstNeighbour);
-        lastNeighbourCharSequence.addAll(lastNeighbour);
-
-        return new ReplicationData(this.connectedUsers, this.connectedLights, this.connectedFridges, this.connectedTS, temp, this.userlocation, firstNeighbourCharSequence, lastNeighbourCharSequence, idCounter);
+        return new ReplicationData(this.connectedUsers, this.connectedLights, this.connectedFridges, this.connectedTS, temp, this.userlocation, neighbourList, idCounter, lastNeighbourId);
     }
 
     @Override
@@ -842,7 +733,23 @@ public class ServerImpl implements ServerProtocol {
         return null;
     }
 
-    private void addNeighbourToClient(String clientIp, String clientType, String neighbourName, String neighbourIp, String neighbourType, boolean isNextNeighbour) {
+    private void regulateNeighbours(String newNeighbourName, String newNeighbourIp, String newNeighbourType) {
+        if (neighbourList.size() == 0) {
+            lastNeighbourId = newNeighbourName;
+            lastNeighbourInfo = new NeighbourData(newNeighbourIp, newNeighbourType);
+            neighbourList.put(newNeighbourName, new NeighbourData(newNeighbourIp, newNeighbourType));
+        } else {
+            NeighbourData lastNeighbourData = neighbourList.get(lastNeighbourId);
+            addNeighbourToClient(lastNeighbourInfo.getIp().toString(), lastNeighbourInfo.getType().toString(), newNeighbourIp, newNeighbourType);
+            addNeighbourToClient(newNeighbourIp, newNeighbourType, lastNeighbourData.getIp().toString(), lastNeighbourData.getType().toString());
+            neighbourList.replace(lastNeighbourId, lastNeighbourData, new NeighbourData(newNeighbourIp, newNeighbourType));
+            neighbourList.put(newNeighbourName, lastNeighbourData);
+            lastNeighbourId = newNeighbourName;
+            lastNeighbourInfo = new NeighbourData(newNeighbourIp, newNeighbourType);
+        }
+    }
+
+    private void addNeighbourToClient(String clientIp, String clientType, String neighbourIp, String neighbourType) {
         try {
             String[] clientIpValue = clientIp.split(",");
             Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(clientIpValue[0]), Integer.parseInt(clientIpValue[1])));
@@ -850,11 +757,11 @@ public class ServerImpl implements ServerProtocol {
             switch (clientType) {
                 case "fridge":
                     FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
-                    fridgeProxy.addNeighbour(neighbourName, neighbourIp, neighbourType, isNextNeighbour);
+                    fridgeProxy.addNeighbour(neighbourIp, neighbourType);
                     break;
                 case "user":
                     UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
-                    userProxy.addNeighbour(neighbourName, neighbourIp, neighbourType, isNextNeighbour);
+                    userProxy.addNeighbour(neighbourIp, neighbourType);
                     break;
             }
             client.close();
@@ -862,30 +769,6 @@ public class ServerImpl implements ServerProtocol {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    private void regulateNeighbours(String clientName, String clientIp, String clientType) {
-        if (firstNeighbour.size() == 0) {
-            firstNeighbour.add(0, clientName);
-            firstNeighbour.add(1, clientIp);
-            firstNeighbour.add(2, clientType);
-        } else {
-            if (lastNeighbour.size() == 0) {
-                addNeighbourToClient(firstNeighbour.get(1), firstNeighbour.get(2), clientName, clientIp, clientType, false);
-                addNeighbourToClient(firstNeighbour.get(1), firstNeighbour.get(2), clientName, clientIp, clientType, true);
-                addNeighbourToClient(clientIp, clientType, firstNeighbour.get(0), firstNeighbour.get(1), firstNeighbour.get(2), true);
-                addNeighbourToClient(clientIp, clientType, firstNeighbour.get(0), firstNeighbour.get(1), firstNeighbour.get(2), false);
-            } else {
-                addNeighbourToClient(clientIp, clientType, lastNeighbour.get(0), lastNeighbour.get(1), lastNeighbour.get(2), false);
-                addNeighbourToClient(clientIp, clientType, firstNeighbour.get(0), firstNeighbour.get(1), firstNeighbour.get(2), true);
-                addNeighbourToClient(lastNeighbour.get(1), lastNeighbour.get(2), clientName, clientIp, clientType, true);
-                addNeighbourToClient(firstNeighbour.get(1), firstNeighbour.get(2), clientName, clientIp, clientType, false);
-            }
-            lastNeighbour.clear();
-            lastNeighbour.add(0, clientName);
-            lastNeighbour.add(1, clientIp);
-            lastNeighbour.add(2, clientType);
         }
     }
 
@@ -903,59 +786,68 @@ public class ServerImpl implements ServerProtocol {
         }
     }
 
-	@Override
-	public boolean closeServer() throws AvroRemoteException {
-		try{
-	        NDS.end();
-	        NDSThread.interrupt();
-	        heartbeatThread.interrupt();
-	        this.setStayOpen(false);
-	        this.server.interrupt();
-		} catch(Exception e){
-			//Something went wrong, dont start the new server, system might be completely destroyed
-			e.printStackTrace();
-			return false;
-		}
-		return true;
-	}
-	
-	private void setReplication(ReplicationData data){
-		    fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
-	        this.connectedUsers = data.getConnectedUsers();
-	        this.connectedLights = data.getConnectedLights();
-	        this.connectedFridges = data.getConnectedFridges();
-	        this.connectedTS = data.getConnectedTS();
-	        this.temperatures = new ArrayList<TemperatureMeasurementRecord>();
-	        this.idCounter = data.getIdCounter();
-	        heartbeat.updateReplication(data);
-	        
-	        firstNeighbour = new ArrayList<String>();
-	        lastNeighbour = new ArrayList<String>();
-	        for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet()){
-	        	fridgeAccessQueue.put(entry.getKey().toString(), new LinkedList<String>());
-	        }
-	        
-	        for (CharSequence firstValue : data.getFirstNeighbour()) {
-	            this.firstNeighbour.add(firstValue.toString());
-	        }
+    @Override
+    public boolean closeServer() throws AvroRemoteException {
+        try {
+            NDS.end();
+            NDSThread.interrupt();
+            heartbeatThread.interrupt();
+            this.setStayOpen(false);
+            this.server.interrupt();
+        } catch (Exception e) {
+            //Something went wrong, dont start the new server, system might be completely destroyed
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
 
-	        for (CharSequence lastValue : data.getLastNeighbour()) {
-	            this.lastNeighbour.add(lastValue.toString());
-	        }
+    private void setReplication(ReplicationData data,String oldClientId) {
+        fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
+        this.connectedUsers = data.getConnectedUsers();
+        this.connectedLights = data.getConnectedLights();
+        this.connectedFridges = data.getConnectedFridges();
+        this.connectedTS = data.getConnectedTS();
+        this.temperatures = new ArrayList<TemperatureMeasurementRecord>();
+        this.idCounter = data.getIdCounter();
+        heartbeat.updateReplication(data, oldClientId);
 
-	        List<TemperatureAggregate> temperaturestemp = data.getTemperatures();
-	        for (TemperatureAggregate x : temperaturestemp) {
-	            TemperatureMeasurementRecord newrecord = new TemperatureMeasurementRecord(x);
-	            this.temperatures.add(newrecord);
-	        }
-	        this.userlocation = data.getUserlocation();
-	}
+        neighbourList = data.getNeighbourList();
+        lastNeighbourId = data.getLastNeighbourId().toString();
+        for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet()) {
+            if (entry.getKey().toString().equalsIgnoreCase(oldClientId)) {
+                System.out.println("removing client: " + entry.getKey());
+                connectedUsers.remove(entry.getKey());
+            }
+            if (entry.getKey().toString().equalsIgnoreCase(lastNeighbourId)) {
+                lastNeighbourInfo = new NeighbourData(entry.getValue(), "user");
+            }
+        }
 
-	public boolean isStayOpen() {
-		return this.stayOpen;
-	}
+        for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet()) {
+            fridgeAccessQueue.put(entry.getKey().toString(), new LinkedList<String>());
+            if (entry.getKey().toString().equalsIgnoreCase(oldClientId)) {
+                System.out.println("removing client: " + entry.getKey());
+                connectedFridges.remove(entry.getKey());
+            }
+            if (entry.getKey().toString().equalsIgnoreCase(lastNeighbourId)) {
+                lastNeighbourInfo = new NeighbourData(entry.getValue(), "fridge");
+            }
+        }
 
-	public void setStayOpen(boolean stayOpen) {
-		this.stayOpen = stayOpen;
-	}
+        List<TemperatureAggregate> temperaturestemp = data.getTemperatures();
+        for (TemperatureAggregate x : temperaturestemp) {
+            TemperatureMeasurementRecord newrecord = new TemperatureMeasurementRecord(x);
+            this.temperatures.add(newrecord);
+        }
+        this.userlocation = data.getUserlocation();
+    }
+
+    public boolean isStayOpen() {
+        return this.stayOpen;
+    }
+
+    public void setStayOpen(boolean stayOpen) {
+        this.stayOpen = stayOpen;
+    }
 }

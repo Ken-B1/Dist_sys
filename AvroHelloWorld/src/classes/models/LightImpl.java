@@ -60,6 +60,7 @@ public class LightImpl implements LightProtocol {
             server.start();
             id = proxy.enter("light",ip+","+port).toString();
             heartbeat.setuserName(id);
+            client.close();
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
