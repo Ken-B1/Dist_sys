@@ -3,24 +3,31 @@ package utility;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 
 public class NetworkDiscoveryServer implements Runnable{
 
 	private int portnumber;
-
+	DatagramSocket socket;
+	boolean isRunning;
 
 	public NetworkDiscoveryServer(int portnumber){
 		this.portnumber = portnumber;
+		try {
+			this.socket = new DatagramSocket(8888);
+			this.socket.setBroadcast(true);
+			this.isRunning = true;
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	
 	@Override
 	public void run() {
 		try{
-			DatagramSocket socket = new DatagramSocket(8888);
-		    socket.setBroadcast(true);
-
-		    while (true) {
+		    while (isRunning) {
 		      System.out.println(">>>Ready to receive broadcast packets!");
 
 		      //Receive a packet
@@ -46,8 +53,14 @@ public class NetworkDiscoveryServer implements Runnable{
 		      }
 		    }
 		}catch(Exception e){
-			
+			//Socket closed because server is shutting down
+			System.out.println("Closing networkdiscoveryserver because server is closing");
 		}
+	}
+	
+	public void end(){
+		this.isRunning = false;
+		this.socket.close();
 	}
 
 }

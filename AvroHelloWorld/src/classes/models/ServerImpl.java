@@ -22,7 +22,9 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 import classes.ServerExe;
 import sourcefiles.*;
 import utility.LANIp;
+import utility.NetworkDiscoveryClient;
 import utility.NetworkDiscoveryServer;
+import utility.ReplicationGenerator;
 import utility.ServerHeartbeatMaintainer;
 import utility.TemperatureMeasurementRecord;
 
@@ -33,9 +35,13 @@ public class ServerImpl implements ServerProtocol {
     private Map<CharSequence, CharSequence> connectedTS = new HashMap<CharSequence, CharSequence>();
     private ArrayList<TemperatureMeasurementRecord> temperatures = new ArrayList<TemperatureMeasurementRecord>();
     private Map<CharSequence, Boolean> userlocation = new HashMap<CharSequence, Boolean>();    //Maps a user to a location (1 = outside, 0 = inside)
+   
     ServerHeartbeatMaintainer heartbeat = new ServerHeartbeatMaintainer(this);
     Thread heartbeatThread = new Thread(heartbeat);
-    private static boolean stayOpen = true;
+    NetworkDiscoveryServer NDS;
+    Thread NDSThread;
+    
+    private boolean stayOpen = true;
     SaslSocketServer server;
     private int idCounter;
     private List<String> firstNeighbour;
@@ -48,13 +54,37 @@ public class ServerImpl implements ServerProtocol {
         firstNeighbour = new ArrayList<String>();
         lastNeighbour = new ArrayList<String>();
         fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
+    	//Check if there is already a server running 
+    	try{
+    		NetworkDiscoveryClient NDC = new NetworkDiscoveryClient();
+    		InetSocketAddress serverAddress = NDC.findServer();
+    		//Server has been found, so close it, take over replication and start myself
+    		Transceiver client = new SaslSocketTransceiver(serverAddress);
+			ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+			ReplicationData repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
+			this.setReplication(repdata);
+			boolean success = proxy.closeServer();
+			if(!success){
+				System.out.println("Something went wrong while trying to close the old server");
+				client.close();
+				return;
+			}
+			client.close();
+			Thread.sleep(200);	//Sleep for a short period to make sure the old server has been closed
+    	} catch(IOException e){
+    		System.out.println("No server has been found, so we are safe to start.");
+    	} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+		}
         try {
         	InetAddress localaddress = LANIp.getAddress();
         	ServerSocket s1 = new ServerSocket(0);
 			int portnumber = s1.getLocalPort();
 			s1.close();
-            Thread server1 = new Thread(new NetworkDiscoveryServer(portnumber));
-            server1.start();
+            NDS = new NetworkDiscoveryServer(portnumber);
+            NDSThread = new Thread(NDS);
+            NDSThread.start();
+            heartbeatThread.start();
             server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this), new InetSocketAddress(localaddress, portnumber));
             server.start();
 
@@ -63,52 +93,21 @@ public class ServerImpl implements ServerProtocol {
             e.printStackTrace(System.err);
             System.exit(1);
         }
-
-        while (stayOpen) {
-
-        }
-        server.close();
     }
 
     public ServerImpl(ReplicationData data) {
         System.out.println("Booting server");
-        fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
-        this.connectedUsers = data.getConnectedUsers();
-        this.connectedLights = data.getConnectedLights();
-        this.connectedFridges = data.getConnectedFridges();
-        this.connectedTS = data.getConnectedTS();
-        this.temperatures = new ArrayList<TemperatureMeasurementRecord>();
-        this.idCounter = data.getIdCounter();
-        heartbeat.updateReplication(data);
-        if (heartbeatThread.getState() == Thread.State.NEW) {
-        	heartbeatThread.start();
-        }
-        
-        firstNeighbour = new ArrayList<String>();
-        lastNeighbour = new ArrayList<String>();
-
-        for (CharSequence firstValue : data.getFirstNeighbour()) {
-            this.firstNeighbour.add(firstValue.toString());
-        }
-
-        for (CharSequence lastValue : data.getLastNeighbour()) {
-            this.lastNeighbour.add(lastValue.toString());
-        }
-
-        List<TemperatureAggregate> temperaturestemp = data.getTemperatures();
-        for (TemperatureAggregate x : temperaturestemp) {
-            TemperatureMeasurementRecord newrecord = new TemperatureMeasurementRecord(x);
-            this.temperatures.add(newrecord);
-        }
-        this.userlocation = data.getUserlocation();
+        this.setReplication(data);
 
         try {
         	InetAddress localaddress = LANIp.getAddress();
         	ServerSocket s1 = new ServerSocket(0);
 			int portnumber = s1.getLocalPort();
 			s1.close();
-            Thread server1 = new Thread(new NetworkDiscoveryServer(portnumber));
-            server1.start();
+			NDS = new NetworkDiscoveryServer(portnumber);
+            NDSThread = new Thread(NDS);
+            NDSThread.start();
+            heartbeatThread.start();
             server = new SaslSocketServer(new SpecificResponder(ServerProtocol.class, this), new InetSocketAddress(localaddress, portnumber));
             server.start();
         } catch (IOException e) {
@@ -117,17 +116,10 @@ public class ServerImpl implements ServerProtocol {
             System.exit(1);
         }
 
-        while (stayOpen) {
-
-        }
-        server.close();
     }
 
     @Override
     public CharSequence enter(CharSequence type, CharSequence ip) throws AvroRemoteException {
-        if (heartbeatThread.getState() == Thread.State.NEW) {
-        	heartbeatThread.start();
-        }
         System.out.println("Client coming in");
         String name = idCounter + "";
 
@@ -446,7 +438,7 @@ public class ServerImpl implements ServerProtocol {
         }
 
         for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()) {
-            String name = "Light" + (String) entry.getKey();
+            String name = "Light" + entry.getKey().toString();
             clients.add(name);
         }
 
@@ -910,4 +902,60 @@ public class ServerImpl implements ServerProtocol {
             e.printStackTrace();
         }
     }
+
+	@Override
+	public boolean closeServer() throws AvroRemoteException {
+		try{
+	        NDS.end();
+	        NDSThread.interrupt();
+	        heartbeatThread.interrupt();
+	        this.setStayOpen(false);
+	        this.server.interrupt();
+		} catch(Exception e){
+			//Something went wrong, dont start the new server, system might be completely destroyed
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	private void setReplication(ReplicationData data){
+		    fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
+	        this.connectedUsers = data.getConnectedUsers();
+	        this.connectedLights = data.getConnectedLights();
+	        this.connectedFridges = data.getConnectedFridges();
+	        this.connectedTS = data.getConnectedTS();
+	        this.temperatures = new ArrayList<TemperatureMeasurementRecord>();
+	        this.idCounter = data.getIdCounter();
+	        heartbeat.updateReplication(data);
+	        
+	        firstNeighbour = new ArrayList<String>();
+	        lastNeighbour = new ArrayList<String>();
+	        for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet()){
+	        	fridgeAccessQueue.put(entry.getKey().toString(), new LinkedList<String>());
+	        }
+	        
+	        for (CharSequence firstValue : data.getFirstNeighbour()) {
+	            this.firstNeighbour.add(firstValue.toString());
+	        }
+
+	        for (CharSequence lastValue : data.getLastNeighbour()) {
+	            this.lastNeighbour.add(lastValue.toString());
+	        }
+
+	        List<TemperatureAggregate> temperaturestemp = data.getTemperatures();
+	        for (TemperatureAggregate x : temperaturestemp) {
+	            TemperatureMeasurementRecord newrecord = new TemperatureMeasurementRecord(x);
+	            this.temperatures.add(newrecord);
+	        }
+	        this.userlocation = data.getUserlocation();
+	}
+
+	public boolean isStayOpen() {
+		return this.stayOpen;
+	}
+
+	public void setStayOpen(boolean stayOpen) {
+		this.stayOpen = stayOpen;
+	}
 }

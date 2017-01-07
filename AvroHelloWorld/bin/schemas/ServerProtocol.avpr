@@ -101,6 +101,10 @@
     "closeFridge":{
         "request": [{"name": "fridgeName", "type": "string"},{"name": "clientIp", "type": "string"}],
         "response": "null"
+    },
+    "closeServer":{
+    	"request": [],
+    	"response": "boolean"
     }
   }
 }

@@ -25,16 +25,9 @@ public class UserExe {
 			System.out.println("i: leaveHouse");
 			System.out.println("j: exit");
 			selectedType = keyboard.nextLine();
-			System.out.println(user.isServer);
 			if(user.isServer){
 				selectedType = "";
-				try {
-					System.out.println("test");
-					Thread.sleep(5000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				System.out.println("This user is currently a server, please wait until the server comes back online");
 			}
 			switch(selectedType){
 			case "a":

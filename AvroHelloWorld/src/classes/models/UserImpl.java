@@ -55,7 +55,26 @@ public class UserImpl implements UserProtocol {
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
             //connectToServer();
-            startElection();
+            
+            //Search for server before starting election to check if original server came back online
+            try{
+            	Thread.sleep(1000);
+            } catch(Exception e){}
+            try {
+	            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
+	            serverAddress = FindServer.findServer();
+	            serverFound = true;
+	            heartbeat.setServer(serverAddress);
+	            heartbeat.setuserName(id);
+	            heartbeatThread = new Thread(heartbeat);
+	            heartbeatThread.setUncaughtExceptionHandler(h);
+	            heartbeatThread.start();
+	        } catch (IOException e) {
+	            //Server can't be found
+	            serverFound = false;
+	            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
+	            startElection();
+	        }
         }
     };
 
@@ -518,7 +537,17 @@ public class UserImpl implements UserProtocol {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    new ServerImpl(repdata);
+                    ServerImpl tempServer = new ServerImpl(repdata);
+                    while(tempServer.isStayOpen()){
+                    	try{
+                    		Thread.sleep(1000);
+                    	} catch(Exception e){
+                    		
+                    	}
+                    }
+                    isServer = false;
+                    serverFound = false;
+                    connectToServer();
                 }
             });
         }

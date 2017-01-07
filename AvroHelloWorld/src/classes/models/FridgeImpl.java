@@ -51,10 +51,28 @@ public class FridgeImpl implements FridgeProtocol {
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
 
-            System.out.println("Trying to find server again");
-            startElection();
+          //Search for server before starting election to check if original server came back online
+            try{
+            	Thread.sleep(1000);
+            } catch(Exception e){}
+            try {
+	            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
+	            serverAddress = FindServer.findServer();
+	            serverFound = true;
+	            heartbeat.setServer(serverAddress);
+	            heartbeat.setuserName(id);
+	            heartbeatThread = new Thread(heartbeat);
+	            heartbeatThread.setUncaughtExceptionHandler(h);
+	            heartbeatThread.start();
+	        } catch (IOException e) {
+	            //Server can't be found
+	            serverFound = false;
+	            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
+	            startElection();
+	        }
         }
     };
+	private boolean isServer;
 
     public FridgeImpl() {
         previousNeighbour = new ArrayList<String>();
@@ -206,12 +224,23 @@ public class FridgeImpl implements FridgeProtocol {
 
     public Void setNewServer(CharSequence serverIp) throws AvroRemoteException {
         if (serverIp.toString().equalsIgnoreCase(ip + "," + port)) {
+        	this.isServer = true;
            // new ServerImpl(repdata);
             Executor executor = Executors.newSingleThreadExecutor();
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    new ServerImpl(repdata);
+                	 ServerImpl tempServer = new ServerImpl(repdata);
+                     while(tempServer.isStayOpen()){
+                     	try{
+                     		Thread.sleep(1000);
+                     	} catch(Exception e){
+                     		
+                     	}
+                     }
+                     isServer = false;
+                     serverFound = false;
+                     connectToServer();
                 }
             });
         }

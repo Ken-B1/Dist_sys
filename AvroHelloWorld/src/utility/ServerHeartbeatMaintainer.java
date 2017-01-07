@@ -19,9 +19,11 @@ public class ServerHeartbeatMaintainer implements Runnable{
 	//Server linked to this maintainer
 	ServerImpl server;
 	private Map<String, String> heartbeats = new HashMap<String, String>();  //Maps a client to a time since last heartbeat was received
+	private boolean isRunning;
 	
 	public ServerHeartbeatMaintainer(ServerImpl server){
 		this.server = server;
+		this.isRunning = true;
 	}
 	
 	public void updateClient(String userName){
@@ -36,8 +38,7 @@ public class ServerHeartbeatMaintainer implements Runnable{
 	@Override
 	public void run() {
 		// This object will periodically check all heartbeats to see if devices havent notified in a while
-		while(true){
-			System.out.println("Checking for aliveness");
+		while(isRunning){
 			LocalDateTime now = LocalDateTime.now();
 			Vector<String> removeValues = new Vector<String>();
 			for (Entry<String, String> entry : heartbeats.entrySet())
@@ -62,8 +63,8 @@ public class ServerHeartbeatMaintainer implements Runnable{
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Closing the server heartbeatmaintainer because server is closing");
+				this.isRunning = false;
 			}
 		}
 	}
