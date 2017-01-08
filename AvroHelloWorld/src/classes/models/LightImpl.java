@@ -39,7 +39,6 @@ public class LightImpl implements LightProtocol {
     Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
         public void uncaughtException(Thread th, Throwable ex) {
             //Catches the exceptions thrown by the heartbeat thread(indicating server wasnt found)
-            System.out.println("Couldnt find server during heartbeat");
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
             connectToServer();
@@ -105,35 +104,11 @@ public class LightImpl implements LightProtocol {
         return null;
     }
 
-   /* public void join() {
-        connectToServer();
-        try {
-            id = proxy.enter("light", ip + "," + port).toString();
-            heartbeat.setuserName(id);
-        } catch (AvroRemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void leave() {
-        try {
-            proxy.leave(id);
-            heartbeat.setuserName("");
-        } catch (AvroRemoteException e) {
-            e.printStackTrace();
-        }
-    }*/
-
-    public void showName() {
-        System.out.println(id);
-    }
-
     private void connectToServer() {
     	while(!serverFound){
 	        try {
 	            NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
 	            serverAddress = FindServer.findServer();
-	            System.out.println("server found on: " + serverAddress);
 	            serverFound = true;
 	            heartbeat.setServer(serverAddress);
 	            heartbeatThread = new Thread(heartbeat);

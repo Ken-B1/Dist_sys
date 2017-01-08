@@ -59,7 +59,6 @@ public class Heartbeat implements Runnable{
 	
 	//Method to set the server
 	public void setServer(InetSocketAddress server){
-		System.out.println("setting server to: " + server);
 		this.server = server;
 	}
 	

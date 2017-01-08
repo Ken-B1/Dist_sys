@@ -46,14 +46,14 @@ public class ServerImpl implements ServerProtocol {
     private int idCounter;
     Map<CharSequence, NeighbourData> neighbourList;
     private String lastNeighbourId;
-    private NeighbourData lastNeighbourInfo;
+    private NeighbourData currentLastNeighbourInfo;
     Map<String, LinkedList<String>> fridgeAccessQueue;
     //Variable to save lightstates when everyone leaves the house
     private Map<CharSequence, Boolean> lightsave = new HashMap<CharSequence, Boolean>();
 
     public ServerImpl() {
         lastNeighbourId = "0";
-        lastNeighbourInfo = new NeighbourData("0.0.0.0", "none");
+        currentLastNeighbourInfo = new NeighbourData("0.0.0.0", "none");
         neighbourList = new HashMap<>();
         fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
         //Check if there is already a server running
@@ -64,7 +64,7 @@ public class ServerImpl implements ServerProtocol {
             Transceiver client = new SaslSocketTransceiver(serverAddress);
             ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
             ReplicationData repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
-            this.setReplication(repdata,"");
+            this.setReplication(repdata, "");
             boolean success = proxy.closeServer();
             if (!success) {
                 System.out.println("Something went wrong while trying to close the old server");
@@ -97,9 +97,8 @@ public class ServerImpl implements ServerProtocol {
         }
     }
 
-    public ServerImpl(ReplicationData data,String oldClientId) {
-        System.out.println("Booting server");
-        this.setReplication(data,oldClientId);
+    public ServerImpl(ReplicationData data, String oldClientId) {
+        this.setReplication(data, oldClientId);
 
         try {
             InetAddress localaddress = LANIp.getAddress();
@@ -122,7 +121,6 @@ public class ServerImpl implements ServerProtocol {
 
     @Override
     public CharSequence enter(CharSequence type, CharSequence ip) throws AvroRemoteException {
-        System.out.println("Client coming in");
         String name = idCounter + "";
 
         //TODO ENUM maken met de verschillende types in
@@ -190,7 +188,6 @@ public class ServerImpl implements ServerProtocol {
             }*/
             try {
                 String[] userValue = entry.getValue().toString().split(",");
-                System.out.println("connecting to fridge at ip: " + userValue[0] + " and at port: " + userValue[1]);
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
                 FridgeProtocol proxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
                 proxy.enter(name, ip, type);
@@ -210,7 +207,6 @@ public class ServerImpl implements ServerProtocol {
 
     @Override
     public CharSequence leave(CharSequence userName) throws AvroRemoteException {
-        System.out.println("Removing: " + userName);
         CharSequence type = "";
 
         for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()) {
@@ -239,10 +235,25 @@ public class ServerImpl implements ServerProtocol {
         }
 
         if (removeFridge) {
-            System.out.println("disconnected client was fridge");
             removedClientIp = connectedFridges.get(userName).toString();
             connectedFridges.remove(userName);
+            for (String userIp : fridgeAccessQueue.get(userName.toString())) {
+                try {
+                    String[] userValue = userIp.split(",");
+                    Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+                    UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+                    proxy.resetFridgeQueueStatus();
+                    client.close();
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                } catch (UnknownHostException e) {
+                    System.out.println("Couldn't find user. Moving on");
+                } catch (IOException e) {
+                    System.out.println("Couldn't find user. Moving on");
+                }
+            }
             fridgeAccessQueue.remove(userName.toString());
+
             type = "fridge";
         }
 
@@ -255,7 +266,6 @@ public class ServerImpl implements ServerProtocol {
         }
 
         if (removeUser) {
-            System.out.println("disconnected client was user");
             removedClientIp = connectedUsers.get(userName).toString();
             connectedUsers.remove(userName);
             type = "user";
@@ -267,12 +277,11 @@ public class ServerImpl implements ServerProtocol {
 
         for (Entry<CharSequence, NeighbourData> entry : neighbourList.entrySet()) {
             if (entry.getValue().getIp().toString().equalsIgnoreCase(removedClientIp)) {
-                System.out.println("We found the client connected to the deleted one");
                 previousNeighbourId = entry.getKey().toString();
                 oldData = entry.getValue();
             }
         }
-
+        //TODO laatste in de lijst, nakijken!!
         neighbourList.remove(userName);
 
         if (previousNeighbourId.length() > 0) {
@@ -707,7 +716,14 @@ public class ServerImpl implements ServerProtocol {
                 }
             }
             fridgeAccessQueue.get(fridgeName.toString()).add(clientIp.toString());
-            grantUserFridgeAccess(clientIp.toString(), fridgeIp, fridgeName);
+            try {
+                grantUserFridgeAccess(clientIp.toString(), fridgeIp, fridgeName);
+            } catch (IOException e) {
+                if (e.getMessage().contains("Connection refused")) {
+                    System.out.println("unable to connect to the next user. Moving on");
+                    fridgeAccessQueue.get(fridgeName.toString()).remove(clientIp.toString());
+                }
+            }
             return "You have been granted access, the queue was empty.";
         } else {
             fridgeAccessQueue.get(fridgeName.toString()).add(clientIp.toString());
@@ -717,17 +733,19 @@ public class ServerImpl implements ServerProtocol {
 
     @Override
     public Void closeFridge(final CharSequence fridgeName, CharSequence clientIp) throws AvroRemoteException {
-        if (fridgeAccessQueue.get(fridgeName.toString()).peekFirst().equalsIgnoreCase(clientIp.toString())) {
-            fridgeAccessQueue.get(fridgeName.toString()).remove();
-        }
-        if (fridgeAccessQueue.get(fridgeName.toString()).size() > 0) {
-            Executor executor = Executors.newSingleThreadExecutor();
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    grantUserFridgeAccess(fridgeAccessQueue.get(fridgeName.toString()).remove(), connectedFridges.get(fridgeName.toString()).toString(), fridgeName);
+        fridgeAccessQueue.get(fridgeName.toString()).remove();
+        boolean failedToConnectUser = true;
+        while (fridgeAccessQueue.get(fridgeName.toString()).size() > 0 && failedToConnectUser) {
+            try {
+                failedToConnectUser = false;
+                grantUserFridgeAccess(fridgeAccessQueue.get(fridgeName.toString()).peekFirst(), connectedFridges.get(fridgeName.toString()).toString(), fridgeName);
+            } catch (IOException e) {
+                if (e.getMessage().contains("Connection refused")) {
+                    failedToConnectUser = true;
+                    System.out.println("unable to connect to the next user. Moving on");
+                    fridgeAccessQueue.get(fridgeName.toString()).remove();
                 }
-            });
+            }
         }
         return null;
     }
@@ -735,16 +753,21 @@ public class ServerImpl implements ServerProtocol {
     private void regulateNeighbours(String newNeighbourName, String newNeighbourIp, String newNeighbourType) {
         if (neighbourList.size() == 0) {
             lastNeighbourId = newNeighbourName;
-            lastNeighbourInfo = new NeighbourData(newNeighbourIp, newNeighbourType);
+            currentLastNeighbourInfo = new NeighbourData(newNeighbourIp, newNeighbourType);
             neighbourList.put(newNeighbourName, new NeighbourData(newNeighbourIp, newNeighbourType));
         } else {
-            NeighbourData lastNeighbourData = neighbourList.get(lastNeighbourId);
-            addNeighbourToClient(lastNeighbourInfo.getIp().toString(), lastNeighbourInfo.getType().toString(), newNeighbourIp, newNeighbourType);
+            NeighbourData lastNeighbourData = new NeighbourData();
+            for (Entry<CharSequence, NeighbourData> entry : neighbourList.entrySet()) {
+                if (entry.getKey().toString().equalsIgnoreCase(lastNeighbourId)) {
+                    lastNeighbourData = entry.getValue();
+                }
+            }
+            addNeighbourToClient(currentLastNeighbourInfo.getIp().toString(), currentLastNeighbourInfo.getType().toString(), newNeighbourIp, newNeighbourType);
             addNeighbourToClient(newNeighbourIp, newNeighbourType, lastNeighbourData.getIp().toString(), lastNeighbourData.getType().toString());
             neighbourList.replace(lastNeighbourId, lastNeighbourData, new NeighbourData(newNeighbourIp, newNeighbourType));
             neighbourList.put(newNeighbourName, lastNeighbourData);
             lastNeighbourId = newNeighbourName;
-            lastNeighbourInfo = new NeighbourData(newNeighbourIp, newNeighbourType);
+            currentLastNeighbourInfo = new NeighbourData(newNeighbourIp, newNeighbourType);
         }
     }
 
@@ -771,7 +794,7 @@ public class ServerImpl implements ServerProtocol {
         }
     }
 
-    private void grantUserFridgeAccess(String clientIp, String fridgeIp, CharSequence fridgeName) {
+    private void grantUserFridgeAccess(String clientIp, String fridgeIp, CharSequence fridgeName) throws IOException {
         try {
             String[] userValue = clientIp.split(",");
             Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
@@ -779,8 +802,7 @@ public class ServerImpl implements ServerProtocol {
             userProxy.grantFridgeAccess(fridgeIp, fridgeName);
             client.close();
         } catch (UnknownHostException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+            System.out.println("I do not know this host");
             e.printStackTrace();
         }
     }
@@ -801,7 +823,7 @@ public class ServerImpl implements ServerProtocol {
         return true;
     }
 
-    private void setReplication(ReplicationData data,String oldClientId) {
+    private void setReplication(ReplicationData data, CharSequence oldClientId) {
         fridgeAccessQueue = new HashMap<String, LinkedList<String>>();
         this.connectedUsers = data.getConnectedUsers();
         this.connectedLights = data.getConnectedLights();
@@ -809,28 +831,101 @@ public class ServerImpl implements ServerProtocol {
         this.connectedTS = data.getConnectedTS();
         this.temperatures = new ArrayList<TemperatureMeasurementRecord>();
         this.idCounter = data.getIdCounter();
-        heartbeat.updateReplication(data, oldClientId);
+        heartbeat.updateReplication(data, oldClientId.toString());
 
         neighbourList = data.getNeighbourList();
         lastNeighbourId = data.getLastNeighbourId().toString();
+
+        String oldClientIp = "";
         for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet()) {
-            if (entry.getKey().toString().equalsIgnoreCase(oldClientId)) {
-                System.out.println("removing client: " + entry.getKey());
+            if (entry.getKey().toString().equalsIgnoreCase(oldClientId.toString())) {
+                oldClientIp = entry.getValue().toString();
                 connectedUsers.remove(entry.getKey());
             }
             if (entry.getKey().toString().equalsIgnoreCase(lastNeighbourId)) {
-                lastNeighbourInfo = new NeighbourData(entry.getValue(), "user");
+                currentLastNeighbourInfo = new NeighbourData(entry.getValue(), "user");
+            }
+
+            try {
+                String[] userValue = entry.getValue().toString().split(",");
+                Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(userValue[0]), Integer.parseInt(userValue[1])));
+                UserProtocol proxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+                proxy.resetFridgeQueueStatus();
+                client.close();
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
         for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet()) {
             fridgeAccessQueue.put(entry.getKey().toString(), new LinkedList<String>());
-            if (entry.getKey().toString().equalsIgnoreCase(oldClientId)) {
-                System.out.println("removing client: " + entry.getKey());
+            if (entry.getKey().toString().equalsIgnoreCase(oldClientId.toString())) {
+                oldClientIp = entry.getValue().toString();
                 connectedFridges.remove(entry.getKey());
             }
             if (entry.getKey().toString().equalsIgnoreCase(lastNeighbourId)) {
-                lastNeighbourInfo = new NeighbourData(entry.getValue(), "fridge");
+                currentLastNeighbourInfo = new NeighbourData(entry.getValue(), "fridge");
+            }
+        }
+        if (!oldClientId.toString().equalsIgnoreCase("")) {
+            if (neighbourList.size() > 1) {
+
+                CharSequence previousNeighbourId = "";
+                NeighbourData previousNeighbourData = new NeighbourData();
+                NeighbourData oldClientNeighbourData = new NeighbourData();
+                for (Entry<CharSequence, NeighbourData> entry : neighbourList.entrySet()) {
+                    if (entry.getValue().getIp().toString().equalsIgnoreCase(oldClientIp)) {
+                        previousNeighbourId = entry.getKey();
+                        previousNeighbourData = entry.getValue();
+                    }
+                    if (entry.getKey().toString().equalsIgnoreCase(oldClientId.toString())) {
+                        oldClientNeighbourData = entry.getValue();
+                    }
+                }
+
+                CharSequence previousNeighbourIp = "";
+                String previousNeighbourType = "";
+
+                for (Entry<CharSequence, CharSequence> entry : connectedUsers.entrySet()) {
+                    if (entry.getKey().toString().equalsIgnoreCase(previousNeighbourId.toString())) {
+                        previousNeighbourIp = entry.getValue();
+                        previousNeighbourType = "fridge";
+                    }
+                }
+
+                for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet()) {
+                    if (entry.getKey().toString().equalsIgnoreCase(previousNeighbourId.toString())) {
+                        previousNeighbourIp = entry.getValue();
+                        previousNeighbourType = "fridge";
+                    }
+                }
+
+                if (neighbourList.size() > 2) {
+                    addNeighbourToClient(previousNeighbourIp.toString(), previousNeighbourType, oldClientNeighbourData.getIp().toString(), oldClientNeighbourData.getType().toString());
+                    neighbourList.replace(previousNeighbourId, previousNeighbourData, oldClientNeighbourData);
+                    Map<CharSequence, NeighbourData> tempNeighbourList = new HashMap<>();
+                    for (Entry<CharSequence, NeighbourData> entry : neighbourList.entrySet()) {
+                        if (!entry.getKey().toString().equalsIgnoreCase(oldClientId.toString())) {
+                            tempNeighbourList.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    neighbourList.clear();
+                    neighbourList.putAll(tempNeighbourList);
+                } else {
+                    //TODO clear de laatste zijn neighbour
+                }
+                if (oldClientId.toString().equalsIgnoreCase(lastNeighbourId)) {
+                    lastNeighbourId = previousNeighbourId.toString();
+                    currentLastNeighbourInfo = new NeighbourData(previousNeighbourIp, previousNeighbourType);
+                }
+            } else {
+                lastNeighbourId = "";
+                currentLastNeighbourInfo = null;
+                neighbourList = new HashMap<>();
             }
         }
 

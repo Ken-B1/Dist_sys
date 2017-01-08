@@ -47,7 +47,6 @@ public class FridgeImpl implements FridgeProtocol {
     Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
         public void uncaughtException(Thread th, Throwable ex) {
             //Catches the exceptions thrown by the heartbeat thread(indicating server wasnt found)
-            System.out.println("Couldnt find server during heartbeat");
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
 
@@ -85,8 +84,7 @@ public class FridgeImpl implements FridgeProtocol {
             ip = localaddress.toString().split("/")[1];
             server = new SaslSocketServer(new SpecificResponder(FridgeProtocol.class, this), new InetSocketAddress(ip, port));
             server.start();
-            System.out.println("booted FridgeServer on: " + port);
-            connectToServer(true);
+             connectToServer(true);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -212,7 +210,6 @@ public class FridgeImpl implements FridgeProtocol {
     	if(newneighbour.equals(test)){
     		electionNeighbour = null;
     	}else{
-	        System.out.println("changing current neighbour to: " + neighbourIp);
 	        electionNeighbour = new NeighbourData(neighbourIp, neighbourType);
     	}	
         return "Neighbour added to Fridge";
@@ -221,9 +218,7 @@ public class FridgeImpl implements FridgeProtocol {
 
     public void setNewServer(CharSequence serverIp) throws AvroRemoteException {
         // new ServerImpl(repdata);
-        System.out.println("got setNewServer");
-        if (!isServer) {
-            System.out.println("creating new server");
+       if (!isServer) {
             this.isServer = true;
             Executor executor = Executors.newSingleThreadExecutor();
             executor.execute(new Runnable() {
@@ -248,13 +243,11 @@ public class FridgeImpl implements FridgeProtocol {
 
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
-        System.out.println("received electionMessage");
         int ownId = Integer.parseInt(id);
         int incId = Integer.parseInt(previousId.toString());
         String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");
         if (incId > ownId) {
-            System.out.println("inc id is bigger than mine");
-            inElection = true;
+           inElection = true;
             try {
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(electionNeighbourIpValue[0]), Integer.parseInt(electionNeighbourIpValue[1])));
                 switch (electionNeighbour.getType().toString()) {
@@ -272,8 +265,7 @@ public class FridgeImpl implements FridgeProtocol {
                 e.printStackTrace();
             }
         } else if (incId < ownId) {
-            System.out.println("inc id is smaller than mine");
-            if (inElection == false) {
+           if (inElection == false) {
                 inElection = true;
                 try {
                     Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(electionNeighbourIpValue[0]), Integer.parseInt(electionNeighbourIpValue[1])));
@@ -293,20 +285,17 @@ public class FridgeImpl implements FridgeProtocol {
                 }
             }
         } else {
-            System.out.println("I have the highest ID");
             setNewServer(ip + "," + port);
             inElection = false;
             try {
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(electionNeighbourIpValue[0]), Integer.parseInt(electionNeighbourIpValue[1])));
                 switch (electionNeighbour.getType().toString()) {
                     case "fridge":
-                        System.out.println("sending electedMessage to fridge");
                         FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
                         fridgeProxy.sendElectedMessage(id, ip + "," + port);
                         break;
                     case "user":
-                        System.out.println("sending electedMessage to user");
-                        UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
+                         UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
                         userProxy.sendElectedMessage(id, ip + "," + port);
                         break;
                 }
@@ -320,7 +309,6 @@ public class FridgeImpl implements FridgeProtocol {
 
     @Override
     public Void sendElectedMessage(CharSequence electedId, CharSequence electedIp) throws AvroRemoteException {
-        System.out.println("received ELECTED id");
         if (!electedId.toString().equalsIgnoreCase(id.toString())) {
             inElection = false;
             String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");
@@ -346,10 +334,8 @@ public class FridgeImpl implements FridgeProtocol {
     }
 
     private void connectToServer(boolean setId) {
-        System.out.println("serverFound status: " + serverFound);
         while (!serverFound) {
             try {
-                System.out.println("We are looking for a server");
                 NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
                 serverAddress = FindServer.findServer();
                 serverFound = true;
@@ -373,7 +359,6 @@ public class FridgeImpl implements FridgeProtocol {
                 heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
             }
         }
-        System.out.println("connectToServer done");
     }
 
     @Override

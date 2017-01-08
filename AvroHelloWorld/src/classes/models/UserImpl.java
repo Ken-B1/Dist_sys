@@ -46,11 +46,12 @@ public class UserImpl implements UserProtocol {
     InetSocketAddress serverAddress;
     private Server server = null;
     public boolean isServer = false;
+    public boolean inFridgeQueue = false;
+    public boolean connectedToFridge = false;
 
     Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
         public void uncaughtException(Thread th, Throwable ex) {
             //Catches the exceptions thrown by the heartbeat thread(indicating server wasnt found)
-            System.out.println("Couldnt find server during heartbeat");
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
       
@@ -67,7 +68,8 @@ public class UserImpl implements UserProtocol {
 	                heartbeatThread.start();
                 }
             } catch (IOException e) {
-            	serverFound = false;
+                System.out.println("IOException happened, didnt find server");
+                serverFound = false;
 	            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
 	            startElection();
             }
@@ -88,14 +90,12 @@ public class UserImpl implements UserProtocol {
             s.close();
             server = new SaslSocketServer(new SpecificResponder(UserProtocol.class, this), new InetSocketAddress(ip, portNumber));
             server.start();
-            System.out.println("booted UserServer on: " + portNumber);
             connectToServer(true);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("User created!");
     }
 
     public void requestClients() {
@@ -164,11 +164,10 @@ public class UserImpl implements UserProtocol {
             System.err.println("That light doesnt exist");
         } catch (AvroRemoteException e) {
             System.err.println("Error joining");
-            System.exit(1);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            System.out.println("Something went wrong");
         }
     }
 
@@ -245,17 +244,22 @@ public class UserImpl implements UserProtocol {
                 System.out.println("Chose one of the following fridges:");
 
                 for (String fridge : fridges) {
-                    System.out.println(fridge);
+                    System.out.println("*) "+ fridge);
                 }
+                System.out.println("*) exit");
                 fridgeName = keyboard.nextLine();
-            } while (!fridges.contains(fridgeName));
+            } while (!fridges.contains(fridgeName) && !fridgeName.equalsIgnoreCase("exit"));
             System.out.println("Checking if we can open the fridge, please wait.");
+            inFridgeQueue = true;
             proxy.requestFridgeAddress(fridgeName, ip + "," + portNumber);
             client.close();
         } catch (AvroRemoteException e) {
             System.err.println("Error joining");
-            e.printStackTrace(System.err);
-            System.exit(1);
+            //e.printStackTrace();
+            if (e.getMessage().contains("An existing")) {
+                inFridgeQueue = false;
+                startElection();
+            }
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -292,7 +296,6 @@ public class UserImpl implements UserProtocol {
             client.close();
 
             for (Entry<CharSequence, Integer> entry : temperatures.entrySet()) {
-                System.out.println("test");
                 System.out.println(entry.getKey().toString() + ": " + entry.getValue());
             }
             //Start the procedure of updating temperature and sending it to the server
@@ -403,7 +406,6 @@ public class UserImpl implements UserProtocol {
 
             }
         }
-        System.out.println("connectToServer done");
     }
 
     @Override
@@ -510,17 +512,15 @@ public class UserImpl implements UserProtocol {
     	if(newneighbour.equals(test)){
     		electionNeighbour = null;
     	}else{
-	        System.out.println("changing current neighbour to: " + neighbourIp);
 	        electionNeighbour = new NeighbourData(neighbourIp, neighbourType);
     	}	
         return "Neighbour added to Fridge";
     }
 
     public void setNewServer(CharSequence serverIp) throws AvroRemoteException {
-        System.out.println("got setNewServer");
         if (!this.isServer) {
-            System.out.println("creating new server");
-            this.isServer = true;
+             this.isServer = true;
+            inFridgeQueue=false;
             Executor executor = Executors.newSingleThreadExecutor();
             executor.execute(new Runnable() {
                 @Override
@@ -545,13 +545,10 @@ public class UserImpl implements UserProtocol {
 
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
-        System.out.println("received electionMessage");
-        
         int ownId = Integer.parseInt(id);
         int incId = Integer.parseInt(previousId.toString());
         String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");
         if (incId > ownId) {
-            System.out.println("inc id is bigger than mine");
             inElection = true;
             try {
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(electionNeighbourIpValue[0]), Integer.parseInt(electionNeighbourIpValue[1])));
@@ -570,7 +567,6 @@ public class UserImpl implements UserProtocol {
                 e.printStackTrace();
             }
         } else if (incId < ownId) {
-            System.out.println("inc id is smaller than mine");
             if (inElection == false) {
                 inElection = true;
                 try {
@@ -591,19 +587,16 @@ public class UserImpl implements UserProtocol {
                 }
             }
         } else {
-            System.out.println("I have the highest ID");
             setNewServer(ip + "," + portNumber);
             inElection = false;
             try {
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getByName(electionNeighbourIpValue[0]), Integer.parseInt(electionNeighbourIpValue[1])));
                 switch (electionNeighbour.getType().toString()) {
                     case "fridge":
-                        System.out.println("sending electedMessage to fridge");
                         FridgeProtocol fridgeProxy = (FridgeProtocol) SpecificRequestor.getClient(FridgeProtocol.class, client);
                         fridgeProxy.sendElectedMessage(id, ip + "," + portNumber);
                         break;
                     case "user":
-                        System.out.println("sending electedMessage to user");
                         UserProtocol userProxy = (UserProtocol) SpecificRequestor.getClient(UserProtocol.class, client);
                         userProxy.sendElectedMessage(id, ip + "," + portNumber);
                         break;
@@ -612,7 +605,6 @@ public class UserImpl implements UserProtocol {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
         return null;
     }
@@ -704,6 +696,7 @@ public class UserImpl implements UserProtocol {
 
     @Override
     public CharSequence grantFridgeAccess(CharSequence fridgeIp, CharSequence fridgeName) throws AvroRemoteException {
+        connectedToFridge=true;
         System.out.println("We have been granted access to the fridge.");
         String[] fridgeValue = fridgeIp.toString().split(",");
         try {
@@ -748,27 +741,50 @@ public class UserImpl implements UserProtocol {
                 }
             } while (!choice.equalsIgnoreCase("exit"));
             fridgeclient.close();
+            connectedToFridge = false;
         } catch (AvroRemoteException e) {
-            System.err.println("Error joining");
-            e.printStackTrace(System.err);
-            System.exit(1);
-        } catch (IOException e) {
+            connectedToFridge = false;
+            inFridgeQueue=false;
+            System.out.println("We seemed to have lost the fridge. Moving on.");
+            return "Fridge crashed";
+           } catch (IOException e) {
             e.printStackTrace();
         }
 
-        try {
-            Transceiver serverClient = new SaslSocketTransceiver(serverAddress);
-            ServerProtocol serverProxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, serverClient);
-            serverProxy.closeFridge(fridgeName, ip + "," + portNumber);
-            serverClient.close();
-        } catch (AvroRemoteException e) {
-            System.err.println("Error joining");
-            e.printStackTrace(System.err);
-            System.exit(1);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+            Executor executor = Executors.newSingleThreadExecutor();
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        inFridgeQueue = false;
+                        Transceiver serverClient = new SaslSocketTransceiver(serverAddress);
+                        ServerProtocol serverProxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, serverClient);
+                        serverProxy.closeFridge(fridgeName, ip + "," + portNumber);
+                        serverClient.close();
+                    } catch (AvroRemoteException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        if (e.getMessage().contains("Connection refused")) {
+                            System.out.println("unable to connect to the next user. Moving on");
+                        }
+                        if(e.getMessage().contains("An existing")){
+                            System.out.println("cannot find server at this time");
+                        }
+                    }
+
+                }
+            });
 
         return "Closed fridge";
+    }
+
+    @Override
+    public Void resetFridgeQueueStatus() throws AvroRemoteException {
+        if(inFridgeQueue){
+            System.out.println("Please try to reconnect to the fridge.");
+        }
+        inFridgeQueue = false;
+        return null;
     }
 }

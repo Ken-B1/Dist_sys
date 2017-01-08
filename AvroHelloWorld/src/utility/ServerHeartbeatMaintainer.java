@@ -44,11 +44,8 @@ public class ServerHeartbeatMaintainer implements Runnable {
             for (Entry<String, String> entry : heartbeats.entrySet()) {
                 LocalDateTime lastTime = LocalDateTime.parse(entry.getValue());
                 long delay = SECONDS.between(lastTime, now);
-                System.out.println("Delay of client: " + entry.getKey() + ", is: " + delay);
-                if (delay > 30) {
-                    System.out.println("Client delay is to big!!!");
-                    System.out.println("Delay of client: " + entry.getKey() + ", is: " + delay);
-                    //Havent heard from the device in over 30 seconds, so notify server
+                if (delay > 10) {
+                   //Havent heard from the device in over 30 seconds, so notify server
                     try {
                         server.leave(entry.getKey());
                     } catch (AvroRemoteException e) {
@@ -58,7 +55,6 @@ public class ServerHeartbeatMaintainer implements Runnable {
                     removeValues.add(entry.getKey());
                 }
             }
-            System.out.println("======================================================");
             for (String x : removeValues) {
                 this.leaveClient(x);
             }
@@ -72,7 +68,6 @@ public class ServerHeartbeatMaintainer implements Runnable {
     }
 
     public void updateReplication(ReplicationData data, String oldClientId) {
-
         // TODO Auto-generated method stub
         //heartbeats.clear();
         for (Entry<CharSequence, CharSequence> entry : data.getConnectedUsers().entrySet()) {

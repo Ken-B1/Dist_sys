@@ -54,7 +54,7 @@ public class ReplicationGenerator {
 		newData.setNeighbourList(original.getNeighbourList());
 		newData.setIdCounter(original.getIdCounter());
 		newData.setUserlocation(userlocation);
-		newData.setLastNeighbourId("");
+		newData.setLastNeighbourId(original.getLastNeighbourId());
 		return newData;
 	}
 }

@@ -43,7 +43,6 @@ public class TempSensImpl implements TSProtocol {
 	Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
 	    public void uncaughtException(Thread th, Throwable ex) {
 	    	//Catches the exceptions thrown by the heartbeat thread(indicating server wasnt found)
-	        System.out.println("Couldnt find server during heartbeat");
 	        serverAddress = new InetSocketAddress("0.0.0.0", 0);
 	        serverFound = false;
 	        connectToServer();
@@ -62,7 +61,6 @@ public class TempSensImpl implements TSProtocol {
 		temperatures.addElement(newtemp);
 		sendToServer(newtemp);
 		updateTemperature();
-		System.out.println("TempSens created!");
 	}
 	
 	private void updateTemperature(){
@@ -76,7 +74,6 @@ public class TempSensImpl implements TSProtocol {
 				double currentTemp = temperatures.lastElement().temperature + (Math.random() * 2 -1);
 				TemperatureRecord newrecord = new TemperatureRecord(currentTime.toString(),currentTemp);
 				temperatures.addElement(newrecord);
-				System.out.println("Current temperature of sensor:" + currentTemp);
 				sendToServer(newrecord);
 			}
 			

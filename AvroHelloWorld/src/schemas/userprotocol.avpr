@@ -75,6 +75,10 @@
     "grantFridgeAccess": {
         "request": [{"name":"fridgeIp","type":"string"},{"name":"fridgeName","type":"string"}],
         "response": "string"
+    },
+    "resetFridgeQueueStatus": {
+        "request": [],
+        "response": "null"
     }
   }
 }
