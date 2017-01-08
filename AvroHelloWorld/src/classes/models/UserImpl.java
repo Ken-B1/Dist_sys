@@ -320,7 +320,6 @@ public class UserImpl implements UserProtocol {
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(), 6789));
                 ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
                 id = proxy.enter("user", InetAddress.getLocalHost().getHostAddress() + "," + portNumber).toString();
-                System.out.println(id);
                 client.close();
             } catch (Exception e1) {
                 System.out.println("Something went wrong while trying to join");
@@ -346,7 +345,6 @@ public class UserImpl implements UserProtocol {
                 Transceiver client = new SaslSocketTransceiver(new InetSocketAddress(InetAddress.getLocalHost(), 6789));
                 ServerProtocol proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
                 id = proxy.enter("user", InetAddress.getLocalHost().getHostAddress() + "," + portNumber).toString();
-                System.out.println(id);
                 client.close();
             } catch (Exception e1) {
                 System.out.println("Something went wrong while trying to join");
@@ -364,9 +362,7 @@ public class UserImpl implements UserProtocol {
 
     @Override
     public Void notifyUsers(CharSequence userName, CharSequence state) throws AvroRemoteException {
-        System.out.println(userName.toString() + state + "the house.");
-        System.out.println(state);
-        System.out.println(state.toString().contentEquals(" entered "));
+        System.out.println("User" + userName.toString() + state + "the house.");
         if (state.toString().contentEquals(" entered ")) {
             this.enterHouse(userName);
         } else {
@@ -452,12 +448,6 @@ public class UserImpl implements UserProtocol {
 
     @Override
     public Void enterHouse(CharSequence userName) throws AvroRemoteException {
-        // TODO Auto-generated method stub
-        System.out.println(userName);
-        System.out.println(userName.toString());
-        System.out.println(repdata.userlocation.containsKey(userName));
-        System.out.println(repdata.userlocation.containsKey(userName.toString()));
-
         repdata.getUserlocation().put(userName.toString(), false);
         return null;
     }

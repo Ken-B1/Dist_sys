@@ -612,7 +612,6 @@ public class ServerImpl implements ServerProtocol {
             }
         }
         if (checkIfLast) {
-            System.out.println("test");
             //Save status of lights and turn them all off
             for (Entry<CharSequence, CharSequence> entry : connectedLights.entrySet()) {
                 try {

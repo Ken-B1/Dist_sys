@@ -243,7 +243,6 @@ public class FridgeImpl implements FridgeProtocol {
                 }
             });
         } else {
-            System.out.println("I already am a server, calm down fam");
         }
     }
 
@@ -359,7 +358,7 @@ public class FridgeImpl implements FridgeProtocol {
                 repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
                 if(setId){
                 	//Need a new id(first join or after original server came back online)
-                    id = proxy.enter("user", ip + "," + port).toString();              	
+                    id = proxy.enter("fridge", ip + "," + port).toString();              	
                 }
                 client.close();
                 heartbeat.setServer(serverAddress);
