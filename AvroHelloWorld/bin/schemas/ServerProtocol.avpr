@@ -10,6 +10,10 @@
      {"name": "counter", "type": "int"}, 
      {"name": "record", "type": "sourcefiles.TemperatureRecord"}]
     },
+    {"name": "NeighbourData", "type": "record", "fields": [
+        {"name": "ip", "type": "string"},
+        {"name": "type", "type": "string"}]
+    },
  	{"name": "ReplicationData", "type": "record", "fields": [
  	 {"name": "connectedUsers", "type": {"type": "map", "values": "string"}},
  	 {"name": "connectedLights", "type": {"type": "map", "values": "string"}},
@@ -17,9 +21,9 @@
  	 {"name": "connectedTS", "type": {"type": "map", "values": "string"}},
  	 {"name": "temperatures", "type": {"type": "array", "items": "TemperatureAggregate"}},
  	 {"name": "userlocation", "type": {"type": "map", "values": "boolean"}},
- 	 {"name": "firstNeighbour", "type": {"type": "array", "items": "string"}},
- 	 {"name": "lastNeighbour", "type": {"type": "array", "items": "string"}},
- 	 {"name": "idCounter", "type": "int"}]
+ 	 {"name": "neighbourList", "type": {"type": "map", "values": "NeighbourData"}},
+ 	 {"name": "idCounter", "type": "int"},
+ 	 {"name": "lastNeighbourId", "type": "string"}]
  	}],
  	
  
