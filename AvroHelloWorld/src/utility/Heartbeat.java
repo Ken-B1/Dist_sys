@@ -38,9 +38,10 @@ public class Heartbeat implements Runnable{
 		while(true){
 			try {
 				Thread.sleep(5000);
-			} catch (InterruptedException e) {
+			} catch (InterruptedException e1) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				//Thread was interrupted, so end loop
+				return;
 			}
 			if(this.server.toString() != "/0.0.0.0:0" && userName != ""){
 				try{

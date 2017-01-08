@@ -53,27 +53,23 @@ public class UserImpl implements UserProtocol {
             System.out.println("Couldnt find server during heartbeat");
             serverAddress = new InetSocketAddress("0.0.0.0", 0);
             serverFound = false;
-            //connectToServer();
-
+      
             //Search for server before starting election to check if original server came back online
-            try {
-                Thread.sleep(1000);
-            } catch (Exception e) {
-            }
             try {
                 NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
                 serverAddress = FindServer.findServer();
                 serverFound = true;
-                heartbeat.setServer(serverAddress);
-                heartbeat.setuserName(id);
-                heartbeatThread = new Thread(heartbeat);
-                heartbeatThread.setUncaughtExceptionHandler(h);
-                heartbeatThread.start();
+                if(!isServer){
+	                heartbeat.setServer(serverAddress);
+	                heartbeat.setuserName(id);
+	                heartbeatThread = new Thread(heartbeat);
+	                heartbeatThread.setUncaughtExceptionHandler(h);
+	                heartbeatThread.start();
+                }
             } catch (IOException e) {
-                //Server can't be found
-                serverFound = false;
-                heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
-                startElection();
+            	serverFound = false;
+	            heartbeat.setServer(new InetSocketAddress("0.0.0.0", 0));
+	            startElection();
             }
         }
     };
@@ -81,26 +77,19 @@ public class UserImpl implements UserProtocol {
     private ReplicationData repdata;
 
     public UserImpl() {
-        electionNeighbour = new NeighbourData();
+        electionNeighbour = null;
         inElection = false;
         heartbeat = new Heartbeat();
-        connectToServer();
         try {
             InetAddress localaddress = LANIp.getAddress();
             ip = localaddress.toString().split("/")[1];
-            System.out.println(ip);
             ServerSocket s = new ServerSocket(0);
             portNumber = s.getLocalPort();
             s.close();
             server = new SaslSocketServer(new SpecificResponder(UserProtocol.class, this), new InetSocketAddress(ip, portNumber));
             server.start();
             System.out.println("booted UserServer on: " + portNumber);
-            client = new SaslSocketTransceiver(serverAddress);
-            proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-            repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
-            id = proxy.enter("user", ip + "," + portNumber).toString();
-            heartbeat.setuserName(id);
-            client.close();
+            connectToServer(true);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -112,7 +101,7 @@ public class UserImpl implements UserProtocol {
     public void requestClients() {
         //Method that will request the other clients from the server and display it to this user
         if (!serverFound) {
-            connectToServer();
+            connectToServer(false);
         }
         try {
             Transceiver client = new SaslSocketTransceiver(serverAddress);
@@ -138,7 +127,7 @@ public class UserImpl implements UserProtocol {
     public void requestLights() {
         //Method that requests all lights from the server
         if (!serverFound) {
-            connectToServer();
+            connectToServer(false);
         }
         try {
             Transceiver client = new SaslSocketTransceiver(serverAddress);
@@ -158,7 +147,7 @@ public class UserImpl implements UserProtocol {
     public void switchLight() {
         //Method that will request to switch the status of a light
         if (!serverFound) {
-            connectToServer();
+            connectToServer(false);
         }
         try {
             Scanner keyboard = new Scanner(System.in);
@@ -186,7 +175,7 @@ public class UserImpl implements UserProtocol {
     public void getFridgeContent() {
         //Method that will request the content of a certain fridge
         if (!serverFound) {
-            connectToServer();
+            connectToServer(false);
         }
         try {
             Scanner keyboard = new Scanner(System.in);
@@ -234,7 +223,7 @@ public class UserImpl implements UserProtocol {
     public void openFridge() {
         //Method that will try to connect to a fridge
         if (!serverFound) {
-            connectToServer();
+            connectToServer(false);
         }
         try {
             String fridgeName = "";
@@ -277,7 +266,7 @@ public class UserImpl implements UserProtocol {
     public void getTemperature() {
         //Method that will request the current temperature of the house
         if (!serverFound) {
-            connectToServer();
+            connectToServer(false);
         }
         try {
             Transceiver client = new SaslSocketTransceiver(serverAddress);
@@ -294,7 +283,7 @@ public class UserImpl implements UserProtocol {
     public void getTemperatureHistory() {
         //Method that will request the history of temperatures in the house
         if (!serverFound) {
-            connectToServer();
+            connectToServer(false);
         }
         try {
             Transceiver client = new SaslSocketTransceiver(serverAddress);
@@ -318,7 +307,7 @@ public class UserImpl implements UserProtocol {
     public void enterHouse() {
         //Method to enter the house
         if (!serverFound) {
-            connectToServer();
+            connectToServer(false);
         }
         try {
             Transceiver client = new SaslSocketTransceiver(serverAddress);
@@ -344,7 +333,7 @@ public class UserImpl implements UserProtocol {
     public void leaveHouse() {
         //Method to leave the house
         if (!serverFound) {
-            connectToServer();
+            connectToServer(false);
         }
         try {
             Transceiver client = new SaslSocketTransceiver(serverAddress);
@@ -386,18 +375,27 @@ public class UserImpl implements UserProtocol {
         return null;
     }
 
-    private void connectToServer() {
-
+    private void connectToServer(boolean setId) {
         while (!serverFound) {
             try {
                 NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
                 serverAddress = FindServer.findServer();
                 serverFound = true;
-                heartbeat.setServer(serverAddress);
-                heartbeat.setuserName(id);
-                heartbeatThread = new Thread(heartbeat);
-                heartbeatThread.setUncaughtExceptionHandler(h);
-                heartbeatThread.start();
+           	    client = new SaslSocketTransceiver(serverAddress);
+                proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+                repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
+                if(setId){
+                	//Need a new id(first join or after original server came back online)
+                    id = proxy.enter("user", ip + "," + portNumber).toString();              	
+                }
+                client.close();
+                if(!this.isServer){
+	                heartbeat.setServer(serverAddress);
+	                heartbeat.setuserName(id);
+	                heartbeatThread = new Thread(heartbeat);
+	                heartbeatThread.setUncaughtExceptionHandler(h);
+	                heartbeatThread.start();
+                }
             } catch (IOException e) {
                 //Server can't be found
                 serverFound = false;
@@ -516,14 +514,21 @@ public class UserImpl implements UserProtocol {
 
     @Override
     public CharSequence addNeighbour(CharSequence neighbourIp, CharSequence neighbourType) throws AvroRemoteException {
-        System.out.println("changing current neighbour to: " + neighbourIp);
-        electionNeighbour = new NeighbourData(neighbourIp, neighbourType);
+    	InetSocketAddress test = new InetSocketAddress(this.ip, this.portNumber);
+    	String[] xxx = neighbourIp.toString().split(",");
+    	InetSocketAddress newneighbour = new InetSocketAddress(xxx[0], Integer.parseInt(xxx[1]));
+    	if(newneighbour.equals(test)){
+    		electionNeighbour = null;
+    	}else{
+	        System.out.println("changing current neighbour to: " + neighbourIp);
+	        electionNeighbour = new NeighbourData(neighbourIp, neighbourType);
+    	}	
         return "Neighbour added to Fridge";
     }
 
     public void setNewServer(CharSequence serverIp) throws AvroRemoteException {
         System.out.println("got setNewServer");
-        if (!isServer) {
+        if (!this.isServer) {
             System.out.println("creating new server");
             this.isServer = true;
             Executor executor = Executors.newSingleThreadExecutor();
@@ -540,19 +545,18 @@ public class UserImpl implements UserProtocol {
                     }
                     isServer = false;
                     serverFound = false;
-                    connectToServer();
+                    connectToServer(true);
+                    
                 }
             });
         } else {
-            System.out.println("I already am a server, calm down fam");
         }
     }
 
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
         System.out.println("received electionMessage");
-        //this.heartbeat.setuserName("");
-        //if (nextNeighbour.size() > 0) {
+        
         int ownId = Integer.parseInt(id);
         int incId = Integer.parseInt(previousId.toString());
         String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");
@@ -620,10 +624,6 @@ public class UserImpl implements UserProtocol {
             }
 
         }
-       /* } else {
-            System.out.println("I am the only client, I will be server");
-            setNewServer(ip + "," + portNumber);
-        }*/
         return null;
     }
 
@@ -631,7 +631,6 @@ public class UserImpl implements UserProtocol {
     public Void sendElectedMessage(CharSequence electedId, CharSequence electedIp) throws AvroRemoteException {
         System.out.println("received ELECTED id");
         if (!electedId.toString().equalsIgnoreCase(id.toString())) {
-            //setNewServer(electedIp);
             inElection = false;
             serverFound = false;
             String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");
@@ -651,9 +650,8 @@ public class UserImpl implements UserProtocol {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            //TODO eventueel een aantal keren laten nakijken of server beschikbaar is
-            connectToServer();
         }
+        connectToServer(false);
         return null;
     }
 
@@ -669,7 +667,11 @@ public class UserImpl implements UserProtocol {
     }
 
     private void startElection() {
-        if (electionNeighbour.getIp().length() > 0) {
+    	if(inElection || serverFound || isServer){
+    		return;
+    	}
+        if (electionNeighbour != null) {
+        	System.out.println("Starting election");
             inElection = true;
             try {
                 String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");

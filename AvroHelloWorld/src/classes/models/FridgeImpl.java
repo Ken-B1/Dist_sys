@@ -53,10 +53,6 @@ public class FridgeImpl implements FridgeProtocol {
 
             //Search for server before starting election to check if original server came back online
             try {
-                Thread.sleep(1000);
-            } catch (Exception e) {
-            }
-            try {
                 NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
                 serverAddress = FindServer.findServer();
                 serverFound = true;
@@ -76,27 +72,21 @@ public class FridgeImpl implements FridgeProtocol {
     private boolean isServer;
 
     public FridgeImpl() {
-        electionNeighbour = new NeighbourData();
+        electionNeighbour = null;
         inElection = false;
         heartbeat = new Heartbeat();
         inventory = new ArrayList<CharSequence>();
         inventory.add("Appel");
-        connectToServer();
         try {
             ServerSocket s = new ServerSocket(0);
             port = s.getLocalPort();
             s.close();
             InetAddress localaddress = LANIp.getAddress();
             ip = localaddress.toString().split("/")[1];
-            client = new SaslSocketTransceiver(serverAddress);
-            proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
-            repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
             server = new SaslSocketServer(new SpecificResponder(FridgeProtocol.class, this), new InetSocketAddress(ip, port));
             server.start();
             System.out.println("booted FridgeServer on: " + port);
-            id = proxy.enter("fridge", ip + "," + port).toString();
-            heartbeat.setuserName(id);
-            client.close();
+            connectToServer(true);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -242,7 +232,7 @@ public class FridgeImpl implements FridgeProtocol {
                     }
                     isServer = false;
                     serverFound = false;
-                    connectToServer();
+                    connectToServer(true);
                 }
             });
         } else {
@@ -253,7 +243,6 @@ public class FridgeImpl implements FridgeProtocol {
     @Override
     public Void sendElectionMessage(CharSequence previousId) throws AvroRemoteException {
         System.out.println("received electionMessage");
-        //this.heartbeat.setuserName("");
         int ownId = Integer.parseInt(id);
         int incId = Integer.parseInt(previousId.toString());
         String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");
@@ -326,9 +315,7 @@ public class FridgeImpl implements FridgeProtocol {
     @Override
     public Void sendElectedMessage(CharSequence electedId, CharSequence electedIp) throws AvroRemoteException {
         System.out.println("received ELECTED id");
-        //TODO if nakijken, nog nodig?
         if (!electedId.toString().equalsIgnoreCase(id.toString())) {
-            //setNewServer(electedIp);
             inElection = false;
             String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");
             try {
@@ -347,28 +334,27 @@ public class FridgeImpl implements FridgeProtocol {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            //TODO eventueel een aantal keren laten nakijken of server beschikbaar is
-            connectToServer();
-            if (serverFound == false) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
         }
+        connectToServer(false);
         return null;
     }
 
-    private void connectToServer() {
+    private void connectToServer(boolean setId) {
         System.out.println("serverFound status: " + serverFound);
         while (!serverFound) {
             try {
                 System.out.println("We are looking for a server");
                 NetworkDiscoveryClient FindServer = new NetworkDiscoveryClient();
                 serverAddress = FindServer.findServer();
-                System.out.println("found server on: " + serverAddress);
                 serverFound = true;
+           	    client = new SaslSocketTransceiver(serverAddress);
+                proxy = (ServerProtocol) SpecificRequestor.getClient(ServerProtocol.class, client);
+                repdata = ReplicationGenerator.generateReplica(proxy.getReplication());
+                if(setId){
+                	//Need a new id(first join or after original server came back online)
+                    id = proxy.enter("user", ip + "," + port).toString();              	
+                }
+                client.close();
                 heartbeat.setServer(serverAddress);
                 heartbeat.setuserName(id);
                 heartbeatThread = new Thread(heartbeat);
@@ -409,6 +395,9 @@ public class FridgeImpl implements FridgeProtocol {
     }
 
     private void startElection() {
+    	if(inElection || serverFound || isServer){
+    		return;
+    	}
         if (electionNeighbour != null) {
             inElection = true;
             String[] electionNeighbourIpValue = electionNeighbour.getIp().toString().split(",");
