@@ -206,8 +206,15 @@ public class FridgeImpl implements FridgeProtocol {
 
     @Override
     public CharSequence addNeighbour(CharSequence neighbourIp, CharSequence neighbourType) throws AvroRemoteException {
-        System.out.println("changing current neighbour to: " + neighbourIp);
-        electionNeighbour = new NeighbourData(neighbourIp, neighbourType);
+    	InetSocketAddress test = new InetSocketAddress(this.ip, this.port);
+    	String[] xxx = neighbourIp.toString().split(",");
+    	InetSocketAddress newneighbour = new InetSocketAddress(xxx[0], Integer.parseInt(xxx[1]));
+    	if(newneighbour.equals(test)){
+    		electionNeighbour = null;
+    	}else{
+	        System.out.println("changing current neighbour to: " + neighbourIp);
+	        electionNeighbour = new NeighbourData(neighbourIp, neighbourType);
+    	}	
         return "Neighbour added to Fridge";
     }
 
