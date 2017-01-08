@@ -76,7 +76,7 @@ public class ServerImpl implements ServerProtocol {
         } catch (IOException e) {
             System.out.println("No server has been found, so we are safe to start.");
         } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
+
         }
         try {
             InetAddress localaddress = LANIp.getAddress();
@@ -123,7 +123,6 @@ public class ServerImpl implements ServerProtocol {
     public CharSequence enter(CharSequence type, CharSequence ip) throws AvroRemoteException {
         String name = idCounter + "";
 
-        //TODO ENUM maken met de verschillende types in
         switch (type.toString()) {
             case "light":
                 if (connectedLights.containsValue(ip)) {
@@ -281,14 +280,12 @@ public class ServerImpl implements ServerProtocol {
                 oldData = entry.getValue();
             }
         }
-        //TODO laatste in de lijst, nakijken!!
         neighbourList.remove(userName);
 
         if (previousNeighbourId.length() > 0) {
             neighbourList.replace(previousNeighbourId, oldData, removedNeighbourData);
         }
 
-        //TODO zien om dit te mergen met for loops hierboven
         //Send update to all clients/fridges
         for (Entry<CharSequence, CharSequence> entry : connectedFridges.entrySet()) {
             try {
@@ -333,7 +330,6 @@ public class ServerImpl implements ServerProtocol {
 
     @Override
     public List<CharSequence> getClients() throws AvroRemoteException {
-        // TODO Auto-generated method stub
 
         List<CharSequence> clients = new ArrayList<CharSequence>();
 
@@ -462,7 +458,6 @@ public class ServerImpl implements ServerProtocol {
 
     @Override
     public CharSequence requestShowEmptyFridge(CharSequence fridgeName) throws AvroRemoteException {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -915,8 +910,6 @@ public class ServerImpl implements ServerProtocol {
                     }
                     neighbourList.clear();
                     neighbourList.putAll(tempNeighbourList);
-                } else {
-                    //TODO clear de laatste zijn neighbour
                 }
                 if (oldClientId.toString().equalsIgnoreCase(lastNeighbourId)) {
                     lastNeighbourId = previousNeighbourId.toString();

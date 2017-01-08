@@ -39,7 +39,6 @@ public class Heartbeat implements Runnable{
 			try {
 				Thread.sleep(5000);
 			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
 				//Thread was interrupted, so end loop
 				return;
 			}

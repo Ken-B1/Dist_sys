@@ -171,14 +171,12 @@ public class FridgeImpl implements FridgeProtocol {
 
     @Override
     public Void enterHouse(CharSequence userName) throws AvroRemoteException {
-        // TODO Auto-generated method stub
         repdata.userlocation.put(userName.toString(), false);
         return null;
     }
 
     @Override
     public Void leaveHouse(CharSequence userName) throws AvroRemoteException {
-        // TODO Auto-generated method stub
         repdata.userlocation.put(userName.toString(), true);
         return null;
     }

@@ -20,7 +20,6 @@ public class LANIp {
 				}
 			}
 		} catch (SocketException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return InetAddress.getByName("0.0.0.0");

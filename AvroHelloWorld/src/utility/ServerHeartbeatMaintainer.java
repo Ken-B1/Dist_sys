@@ -49,7 +49,6 @@ public class ServerHeartbeatMaintainer implements Runnable {
                     try {
                         server.leave(entry.getKey());
                     } catch (AvroRemoteException e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                     removeValues.add(entry.getKey());
@@ -68,7 +67,6 @@ public class ServerHeartbeatMaintainer implements Runnable {
     }
 
     public void updateReplication(ReplicationData data, String oldClientId) {
-        // TODO Auto-generated method stub
         //heartbeats.clear();
         for (Entry<CharSequence, CharSequence> entry : data.getConnectedUsers().entrySet()) {
             if (!entry.getKey().toString().equalsIgnoreCase(oldClientId)) {

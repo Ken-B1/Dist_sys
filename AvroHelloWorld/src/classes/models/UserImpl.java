@@ -456,7 +456,6 @@ public class UserImpl implements UserProtocol {
 
     @Override
     public Void leaveHouse(CharSequence userName) throws AvroRemoteException {
-        // TODO Auto-generated method stub
         repdata.getUserlocation().put(userName.toString(), true);
         return null;
     }

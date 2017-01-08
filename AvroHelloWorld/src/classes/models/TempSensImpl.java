@@ -80,7 +80,6 @@ public class TempSensImpl implements TSProtocol {
 			try {
 				Thread.sleep(x);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}			
 		}

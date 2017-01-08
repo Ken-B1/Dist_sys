@@ -18,7 +18,6 @@ public class NetworkDiscoveryServer implements Runnable{
 			this.socket.setBroadcast(true);
 			this.isRunning = true;
 		} catch (SocketException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

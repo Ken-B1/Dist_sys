@@ -12,7 +12,6 @@ public class TsExe {
 		try {
 			TempSensImpl ts = new TempSensImpl(n);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		Scanner keyboard = new Scanner(System.in);
